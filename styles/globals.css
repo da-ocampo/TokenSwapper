@@ -17,10 +17,6 @@ a {
   transition: color 0.3s;
 }
 
-a:hover {
-  color: #555;
-}
-
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -34,25 +30,38 @@ a:hover {
 
 .swapContainer {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 1em;
-  justify-content: center;
+}
+
+.swapBox:nth-child(1) {
+  margin-top: 1em;
 }
 
 .swapBox {
-  border: 1px solid #ccc;
+  margin-bottom: 1em;
   padding: 1em;
   border-radius: 10px;
-  width: 200px;
+  width: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
   background: #f7f7f7;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .swapBox p {
   margin: 0.5em 0;
+}
+
+.swapContent {
+  flex-grow: 1;
+}
+
+.swapActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1em;
 }
 
 .button {
@@ -69,7 +78,6 @@ a:hover {
 
 .button:hover {
   background-color: #555;
-  opacity: 0.8;
 }
 
 .container {
@@ -86,7 +94,6 @@ a:hover {
 }
 
 /* Button Styles */
-
 .wallet-connect {
   display: flex;
   flex-direction: column;
@@ -109,10 +116,9 @@ a:hover {
 .wallet-connect button:hover,
 .modal button:hover {
   background-color: #555;
-  opacity: 0.8;
 }
 
-main {
+.main-content {
   border-radius: 10px;
   margin: 2em 0;
   background-color: #fff;
@@ -158,11 +164,11 @@ main {
 
 .guide-left,
 .guide-right {
-  margin: 1em 0;
+  margin-bottom: 1em;
 }
 
 /* Input Box Styles */
-input[type="text"] {
+input[type="text"], select {
   width: 50%;
   padding: 1em;
   font-family: 'Inter', sans-serif;
@@ -174,67 +180,158 @@ input[type="text"] {
   transition: border-color 0.3s;
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus, select:focus {
   border-color: #555;
   outline: none;
+}
+
+
+/* Toggle Button Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 2em 0 0 0;
+}
+
+.title h1 {
+  margin: 0;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+}
+
+.navList {
+  list-style: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.navItem {
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+.toggle {
+  text-align: center;
+  margin: 1em 0;
+}
+
+.toggleButtons {
+  display: flex;
+  justify-content: center;
+  margin: 1em 0;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  opacity: 0.5;
+  transition: color 0.3s;
+}
+
+.toggle-button.active {
+  opacity: 1;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.toggle-button:hover {
+  color: #555;
 }
 
 /* Animations */
 @keyframes expandOut {
   0% {
-    transform: scale(0);
-    opacity: 0;
+      transform: scale(0);
+      opacity: 0;
   }
   100% {
-    transform: scale(1);
-    opacity: 1;
+      transform: scale(1);
+      opacity: 1;
   }
 }
 
 /* Responsive Styles */
 @media only screen and (max-width: 1024px) {
   .guide-grid {
-    grid-template-columns: 1fr;
-    gap: 2em;
+      grid-template-columns: 1fr;
+      gap: 2em;
   }
 
   .guide {
-    width: 80%;
+      width: 80%;
   }
 }
 
 @media only screen and (max-width: 768px) {
   .guide-grid {
-    grid-template-columns: 1fr;
-    gap: 1em;
+      grid-template-columns: 1fr;
+      gap: 1em;
   }
 
   .guide {
-    width: 90%;
-    padding: 0.5em;
+      width: 90%;
+      padding: 0.5em;
+  }
+
+  .header {
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .navItem {
+      margin: 1em;
+  }
+
+  .navbar {
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .navItem {
+      margin: 0.5em 0;
   }
 }
 
 @media only screen and (max-width: 480px) {
-  .guide-grid {
-    flex-direction: column;
-    align-items: center;
+  .header, .navbar, .guide-grid {
+      flex-direction: column;
+      align-items: center;
+  }
+
+  .title h1 {
+      font-size: 1.5em;
   }
 
   .guide {
-    margin: 0em;
-    padding: 1em;
+      margin: 0em;
+      padding: 1em;
   }
 
   .button button,
   .wallet-connect button,
   .modal button {
-    height: 4em;
+      height: 4em;
   }
 
   .guide,
   input[type="text"] {
-    width: 100%;
+      width: 100%;
+  }
+
+  .navItem {
+      margin: 0.5em 0;
   }
 }
 
