@@ -1,0 +1,2 @@
+export const CONTRACT_ADDRESS = '0xEA929E6916c6bE1F649f9F0c6E7b8b0A5999414F';
+export const clientKey = 'f82884e75c809718adcfdea03d8b8929';

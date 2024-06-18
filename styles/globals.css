@@ -1,22 +1,250 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
-
-html,
-body {
+/* Global Styles */
+html, body {
   padding: 0;
   margin: 0;
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
+  color: #000;
+  background: #fff;
+  scroll-behavior: smooth;
+  height: 100%;
+  min-height: 100vh;
+  line-height: 1.6;
 }
 
 a {
-  color: #84309c;
   text-decoration: none;
+  color: #000;
+  transition: color 0.3s;
 }
 
-* {
+a:hover {
+  color: #555;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-body {
-  color: #e7e8e8;
-  background: #070707;
+#root, #__next {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.swapContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  justify-content: center;
+}
+
+.swapBox {
+  border: 1px solid #ccc;
+  padding: 1em;
+  border-radius: 10px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f7f7f7;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.swapBox p {
+  margin: 0.5em 0;
+}
+
+.button {
+  margin-top: 1em;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.5em 1em;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.button:hover {
+  background-color: #555;
+  opacity: 0.8;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+}
+
+/* Button Styles */
+
+.wallet-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1em 0;
+}
+
+.wallet-connect button,
+.modal button {
+  height: 2em;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s;
+}
+
+.wallet-connect button:hover,
+.modal button:hover {
+  background-color: #555;
+  opacity: 0.8;
+}
+
+main {
+  border-radius: 10px;
+  margin: 2em 0;
+  background-color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 2em;
+}
+
+/* Guide Styles */
+.guide {
+  margin: 0 auto;
+  width: 55em;
+  padding: 1em 0;
+}
+
+/* Modal Styles */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  text-align: center;
+  animation: expandOut 0.3s ease-out;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+}
+
+.guide-left,
+.guide-right {
+  margin: 1em 0;
+}
+
+/* Input Box Styles */
+input[type="text"] {
+  width: 50%;
+  padding: 1em;
+  font-family: 'Inter', sans-serif;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin: 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.3s;
+}
+
+input[type="text"]:focus {
+  border-color: #555;
+  outline: none;
+}
+
+/* Animations */
+@keyframes expandOut {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive Styles */
+@media only screen and (max-width: 1024px) {
+  .guide-grid {
+    grid-template-columns: 1fr;
+    gap: 2em;
+  }
+
+  .guide {
+    width: 80%;
+  }
+}
+
+@media only screen and (max-width: 768px) {
+  .guide-grid {
+    grid-template-columns: 1fr;
+    gap: 1em;
+  }
+
+  .guide {
+    width: 90%;
+    padding: 0.5em;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .guide-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .guide {
+    margin: 0em;
+    padding: 1em;
+  }
+
+  .button button,
+  .wallet-connect button,
+  .modal button {
+    height: 4em;
+  }
+
+  .guide,
+  input[type="text"] {
+    width: 100%;
+  }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 5px;
+  background-color: #f7f7f7;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 6px;
 }
