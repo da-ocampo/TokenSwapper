@@ -295,6 +295,13 @@ const Swapper: NextPage = () => {
             <section id="initSwap" className="guide-grid">
               <div className="guide-left">
                 <h3>How To Initiate The Swap</h3>
+                <p>
+                  Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
+                </p>
+                <ul>
+                  <li>Enter the Token ID in the Approve Token field.</li>
+                  <li>Approve the contract to access your token.</li>
+                </ul>
                 <p>As the initiator, provide the following information:</p>
                 <ul>
                   <li>Initiator's Token ID</li>
@@ -313,26 +320,46 @@ const Swapper: NextPage = () => {
                     <li>Acceptor's ETH Portion (optional)</li>
                   </ul>
                 </ul>
-                <h3>Approve the Token</h3>
-                <p>
-                  Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
-                </p>
-                <ul>
-                  <li>Enter the Token ID in the Approve Token field.</li>
-                  <li>Approve the contract to access your token.</li>
-                </ul>
               </div>
               <div className="guide-right">
-                <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Enter Swap Information</h3>
 
                 {!address && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                    <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Connect Your Wallet</h3>
                     <ConnectWallet />
                   </div>
                 )}
                 {address && (
                   <div>
+                    <div>
+                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Approve Token</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                        <input
+                          type="text"
+                          name="approveContractAddress"
+                          placeholder="Token Contract Address"
+                          value={formState.approveContractAddress}
+                          onChange={handleChange}
+                        />
+                        <input
+                          type="text"
+                          name="approveTokenId"
+                          placeholder="Token ID"
+                          value={formState.approveTokenId}
+                          onChange={handleChange}
+                        />
+                        <Web3Button
+                          className="button"
+                          contractAddress={formState.approveContractAddress}
+                          action={handleApprove}
+                          isDisabled={!address || !approveContract}
+                        >
+                          Approve Token
+                        </Web3Button>
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Enter Swap Information</h3>
                       <input
                         type="text"
                         name="initiatorTokenId"
@@ -424,33 +451,6 @@ const Swapper: NextPage = () => {
                       >
                         Initiate Swap
                       </Web3Button>
-                    </div>
-                    <div>
-                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Approve Token</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                        <input
-                          type="text"
-                          name="approveContractAddress"
-                          placeholder="Token Contract Address"
-                          value={formState.approveContractAddress}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="approveTokenId"
-                          placeholder="Token ID"
-                          value={formState.approveTokenId}
-                          onChange={handleChange}
-                        />
-                        <Web3Button
-                          className="button"
-                          contractAddress={formState.approveContractAddress}
-                          action={handleApprove}
-                          isDisabled={!address || !approveContract}
-                        >
-                          Approve Token
-                        </Web3Button>
-                      </div>
                     </div>
                   </div>
                 )}
