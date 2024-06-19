@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { Web3Button, useAddress, useContract, useSigner } from '@thirdweb-dev/react';
+import { Web3Button, ConnectWallet, useAddress, useContract, useSigner } from '@thirdweb-dev/react';
 import { useState, useEffect, useCallback } from 'react';
 import { CONTRACT_ADDRESS } from '../const/addresses';
 import styles from '../styles/Home.module.css';
@@ -294,7 +294,7 @@ const Swapper: NextPage = () => {
           {currentPage === 'initSwap' && (
             <section id="initSwap" className="guide-grid">
               <div className="guide-left">
-                <h3>Initiate the Swap</h3>
+                <h3>How To Initiate The Swap</h3>
                 <p>As the initiator, provide the following information:</p>
                 <ul>
                   <li>Initiator's Token ID</li>
@@ -323,202 +323,228 @@ const Swapper: NextPage = () => {
                 </ul>
               </div>
               <div className="guide-right">
-                <div>
-                  <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Swap Information</h3>
+                <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Enter Swap Information</h3>
+
+                {!address && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <input
-                      type="text"
-                      name="initiatorTokenId"
-                      placeholder="Your Token ID"
-                      value={formState.initiatorTokenId}
-                      onChange={handleChange}
-                    />
-                    <input
-                      type="text"
-                      name="acceptorTokenId"
-                      placeholder="Acceptor's Token ID"
-                      value={formState.acceptorTokenId}
-                      onChange={handleChange}
-                    />
-                    <input
-                      type="text"
-                      name="acceptorAddress"
-                      placeholder="Acceptor's Wallet Address"
-                      value={formState.acceptorAddress}
-                      onChange={handleChange}
-                    />
-                    <select name="initiatorTokenType" value={formState.initiatorTokenType} onChange={handleChange}>
-                      <option value="NONE">None</option>
-                      <option value="ERC20">ERC20</option>
-                      <option value="ERC721">ERC721</option>
-                      <option value="ERC1155">ERC1155</option>
-                    </select>
-                    {formState.initiatorTokenType !== 'NONE' && (
-                      <>
-                        <input
-                          type="text"
-                          name="initiatorERCContract"
-                          placeholder="Initiator's Token Contract Address"
-                          value={formState.initiatorERCContract}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="initiatorTokenQuantity"
-                          placeholder="Initiator's Token Quantity"
-                          value={formState.initiatorTokenQuantity}
-                          onChange={handleChange}
-                        />
-                      </>
-                    )}
-                    <input
-                      type="text"
-                      name="initiatorETHPortion"
-                      placeholder="Initiator's ETH Portion"
-                      value={formState.initiatorETHPortion}
-                      onChange={handleChange}
-                    />
-                    <select name="acceptorTokenType" value={formState.acceptorTokenType} onChange={handleChange}>
-                      <option value="NONE">None</option>
-                      <option value="ERC20">ERC20</option>
-                      <option value="ERC721">ERC721</option>
-                      <option value="ERC1155">ERC1155</option>
-                    </select>
-                    {formState.acceptorTokenType !== 'NONE' && (
-                      <>
-                        <input
-                          type="text"
-                          name="acceptorERCContract"
-                          placeholder="Acceptor's Token Contract Address"
-                          value={formState.acceptorERCContract}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="acceptorTokenQuantity"
-                          placeholder="Acceptor's Token Quantity"
-                          value={formState.acceptorTokenQuantity}
-                          onChange={handleChange}
-                        />
-                      </>
-                    )}
-                    <input
-                      type="text"
-                      name="acceptorETHPortion"
-                      placeholder="Acceptor's ETH Portion"
-                      value={formState.acceptorETHPortion}
-                      onChange={handleChange}
-                    />
-                    <Web3Button className="button" contractAddress={CONTRACT_ADDRESS} action={handleSwap} isDisabled={!address}>
-                      Initiate Swap
-                    </Web3Button>
+                    <ConnectWallet />
                   </div>
-                </div>
-                <div>
-                  <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Approve Token</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <input
-                      type="text"
-                      name="approveContractAddress"
-                      placeholder="Token Contract Address"
-                      value={formState.approveContractAddress}
-                      onChange={handleChange}
-                    />
-                    <input
-                      type="text"
-                      name="approveTokenId"
-                      placeholder="Token ID"
-                      value={formState.approveTokenId}
-                      onChange={handleChange}
-                    />
-                    <Web3Button
-                      className="button"
-                      contractAddress={formState.approveContractAddress}
-                      action={handleApprove}
-                      isDisabled={!address || !approveContract}
-                    >
-                      Approve Token
-                    </Web3Button>
+                )}
+                {address && (
+                  <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                      <input
+                        type="text"
+                        name="initiatorTokenId"
+                        placeholder="Your Token ID"
+                        value={formState.initiatorTokenId}
+                        onChange={handleChange}
+                      />
+                      <input
+                        type="text"
+                        name="acceptorTokenId"
+                        placeholder="Acceptor's Token ID"
+                        value={formState.acceptorTokenId}
+                        onChange={handleChange}
+                      />
+                      <input
+                        type="text"
+                        name="acceptorAddress"
+                        placeholder="Acceptor's Wallet Address"
+                        value={formState.acceptorAddress}
+                        onChange={handleChange}
+                      />
+                      <select name="initiatorTokenType" value={formState.initiatorTokenType} onChange={handleChange}>
+                        <option value="NONE">None</option>
+                        <option value="ERC20">ERC20</option>
+                        <option value="ERC721">ERC721</option>
+                        <option value="ERC1155">ERC1155</option>
+                      </select>
+                      {formState.initiatorTokenType !== 'NONE' && (
+                        <>
+                          <input
+                            type="text"
+                            name="initiatorERCContract"
+                            placeholder="Initiator's Token Contract Address"
+                            value={formState.initiatorERCContract}
+                            onChange={handleChange}
+                          />
+                          <input
+                            type="text"
+                            name="initiatorTokenQuantity"
+                            placeholder="Initiator's Token Quantity"
+                            value={formState.initiatorTokenQuantity}
+                            onChange={handleChange}
+                          />
+                        </>
+                      )}
+                      <input
+                        type="text"
+                        name="initiatorETHPortion"
+                        placeholder="Initiator's ETH Portion"
+                        value={formState.initiatorETHPortion}
+                        onChange={handleChange}
+                      />
+                      <select name="acceptorTokenType" value={formState.acceptorTokenType} onChange={handleChange}>
+                        <option value="NONE">None</option>
+                        <option value="ERC20">ERC20</option>
+                        <option value="ERC721">ERC721</option>
+                        <option value="ERC1155">ERC1155</option>
+                      </select>
+                      {formState.acceptorTokenType !== 'NONE' && (
+                        <>
+                          <input
+                            type="text"
+                            name="acceptorERCContract"
+                            placeholder="Acceptor's Token Contract Address"
+                            value={formState.acceptorERCContract}
+                            onChange={handleChange}
+                          />
+                          <input
+                            type="text"
+                            name="acceptorTokenQuantity"
+                            placeholder="Acceptor's Token Quantity"
+                            value={formState.acceptorTokenQuantity}
+                            onChange={handleChange}
+                          />
+                        </>
+                      )}
+                      <input
+                        type="text"
+                        name="acceptorETHPortion"
+                        placeholder="Acceptor's ETH Portion"
+                        value={formState.acceptorETHPortion}
+                        onChange={handleChange}
+                      />
+                      <Web3Button
+                        className="button"
+                        contractAddress={CONTRACT_ADDRESS}
+                        action={handleSwap}
+                        isDisabled={!address}
+                      >
+                        Initiate Swap
+                      </Web3Button>
+                    </div>
+                    <div>
+                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Approve Token</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                        <input
+                          type="text"
+                          name="approveContractAddress"
+                          placeholder="Token Contract Address"
+                          value={formState.approveContractAddress}
+                          onChange={handleChange}
+                        />
+                        <input
+                          type="text"
+                          name="approveTokenId"
+                          placeholder="Token ID"
+                          value={formState.approveTokenId}
+                          onChange={handleChange}
+                        />
+                        <Web3Button
+                          className="button"
+                          contractAddress={formState.approveContractAddress}
+                          action={handleApprove}
+                          isDisabled={!address || !approveContract}
+                        >
+                          Approve Token
+                        </Web3Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </section>
           )}
           {currentPage === 'swapList' && (
             <section id="swapList">
               <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Available Swaps</h3>
-              <div className="toggleButtons">
-                <button
-                  className={`toggle-button ${showInitiatedSwaps ? 'active' : ''}`}
-                  onClick={() => setShowInitiatedSwaps(true)}
-                >
-                  Initiated Swaps
-                </button>
-                <button
-                  className={`toggle-button ${!showInitiatedSwaps ? 'active' : ''}`}
-                  onClick={() => setShowInitiatedSwaps(false)}
-                >
-                  Completed Swaps
-                </button>
-              </div>
-              {showInitiatedSwaps ? (
-                <div className="swapContainer">
-                  {initiatedTransactions.length === 0 ? (
-                    <p>No transactions found.</p>
-                  ) : (
-                    initiatedTransactions.map((tx, index) => (
-                      <div key={index} className="swapBox">
-                        <div className="swapContent">
-                          <p><strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong></p>
-                          <p><strong>{tx.swapType}</strong></p>
-                          <p>
-                            <strong>Swap ID:</strong> {tx.data.swapId.toString()}
-                          </p>
-                          <p>
-                            {abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}
-                          </p>
-                        </div>
-                        <div className="swapActions">
-                          {tx.data.swap.initiator === address && (
-                            <Web3Button
-                              className="button"
-                              contractAddress={CONTRACT_ADDRESS}
-                              action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                              isDisabled={!address}
-                            >
-                              Remove Swap
-                            </Web3Button>
-                          )}
-                          {tx.data.swap.acceptor === address && (
-                            <Web3Button
-                              className="button"
-                              contractAddress={CONTRACT_ADDRESS}
-                              action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                              isDisabled={!address}
-                            >
-                              Complete Swap
-                            </Web3Button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
+              {!address && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                  <ConnectWallet />
                 </div>
-              ) : (
-                <div className="swapContainer">
-                  {completedTransactions.length === 0 ? (
-                    <p>No transactions found.</p>
+              )}
+              {address && (
+                <div>
+                  <div className="toggleButtons">
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps(true)}
+                    >
+                      Initiated Swaps
+                    </button>
+                    <button
+                      className={`toggle-button ${!showInitiatedSwaps ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps(false)}
+                    >
+                      Completed Swaps
+                    </button>
+                  </div>
+                  {showInitiatedSwaps ? (
+                    <div className="swapContainer">
+                      {initiatedTransactions.length === 0 ? (
+                        <p>No transactions found.</p>
+                      ) : (
+                        initiatedTransactions.map((tx, index) => (
+                          <div key={index} className="swapBox">
+                            <div className="swapContent">
+                              <p>
+                                <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
+                              </p>
+                              <p><strong>{tx.swapType}</strong></p>
+                              <p>
+                                <strong>Swap ID:</strong> {tx.data.swapId.toString()}
+                              </p>
+                              <p>
+                                {abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}
+                              </p>
+                            </div>
+                            <div className="swapActions">
+                              {tx.data.swap.initiator === address && (
+                                <Web3Button
+                                  className="button"
+                                  contractAddress={CONTRACT_ADDRESS}
+                                  action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
+                                  isDisabled={!address}
+                                >
+                                  Remove Swap
+                                </Web3Button>
+                              )}
+                              {tx.data.swap.acceptor === address && (
+                                <Web3Button
+                                  className="button"
+                                  contractAddress={CONTRACT_ADDRESS}
+                                  action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
+                                  isDisabled={!address}
+                                >
+                                  Complete Swap
+                                </Web3Button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   ) : (
-                    completedTransactions.map((tx, index) => (
-                      <div key={index} className="swapBox">
-                        <div className="swapContent">
-                          <p><strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong></p>
-                          <p><strong>{tx.swapType}</strong></p>
-                          <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
-                          <p>{abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}</p>
-                        </div>
-                      </div>
-                    ))
+                    <div className="swapContainer">
+                      {completedTransactions.length === 0 ? (
+                        <p>No transactions found.</p>
+                      ) : (
+                        completedTransactions.map((tx, index) => (
+                          <div key={index} className="swapBox">
+                            <div className="swapContent">
+                              <p>
+                                <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
+                              </p>
+                              <p><strong>{tx.swapType}</strong></p>
+                              <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
+                              <p>{abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
               )}
