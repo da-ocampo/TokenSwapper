@@ -13,13 +13,11 @@ const tokenTypeMap: { [key: string]: number } = {
   ERC1155: 4,
 };
 
-const tokenTypeEnumToName = (enumValue: number): string => {
-  return Object.keys(tokenTypeMap).find(key => tokenTypeMap[key] === enumValue) || 'Unknown';
-};
+const tokenTypeEnumToName = (enumValue: number): string =>
+  Object.keys(tokenTypeMap).find(key => tokenTypeMap[key] === enumValue) || 'Unknown';
 
-const abbreviateAddress = (address: string) => {
-  return address ? `${address.substring(0, 8)}...${address.substring(address.length - 4)}` : '';
-};
+const abbreviateAddress = (address: string) =>
+  address ? `${address.substring(0, 8)}...${address.substring(address.length - 4)}` : '';
 
 const fetchContractName = async (contractAddress: string, signer: any) => {
   try {
@@ -60,12 +58,12 @@ const Swapper: NextPage = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormState((prevState) => ({ ...prevState, [name]: value }));
+    setFormState(prevState => ({ ...prevState, [name]: value }));
   };
 
   useEffect(() => {
     if (formState.swapId !== null) {
-      setFormState((prevState) => ({
+      setFormState(prevState => ({
         ...prevState,
         modalMessage: `Swap successfully initiated! Your Swap ID is ${formState.swapId}`,
       }));
@@ -76,51 +74,41 @@ const Swapper: NextPage = () => {
     if (swapContract && signer) {
       try {
         const events = await swapContract.events.getAllEvents();
-        const swapInitiatedEvents = events.filter((event) => event.eventName === 'SwapInitiated');
-        const swapCompletedEvents = events.filter((event) => event.eventName === 'SwapComplete');
-        const swapRemovedEvents = events.filter((event) => event.eventName === 'SwapRemoved');
+        const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
+        const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
+        const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
 
-        const removedSwapIds = new Set(swapRemovedEvents.map((event) => event.data.swapId.toString()));
-        const completedSwapIds = new Set(swapCompletedEvents.map((event) => event.data.swapId.toString()));
+        const removedSwapIds = new Set(swapRemovedEvents.map(event => event.data.swapId.toString()));
+        const completedSwapIds = new Set(swapCompletedEvents.map(event => event.data.swapId.toString()));
 
         const filteredInitiatedEvents = swapInitiatedEvents.filter(
-          (event) =>
-            !removedSwapIds.has(event.data.swapId.toString()) && !completedSwapIds.has(event.data.swapId.toString())
+          event => !removedSwapIds.has(event.data.swapId.toString()) && !completedSwapIds.has(event.data.swapId.toString())
         );
 
-        // Fetch contract names for each initiated transaction
-        const initiatedTransactionsWithNames = await Promise.all(
-          filteredInitiatedEvents.map(async (tx) => {
-            const initiatorContractName = await fetchContractName(tx.data.swap.initiatorERCContract, signer);
-            const acceptorContractName = await fetchContractName(tx.data.swap.acceptorERCContract, signer);
-            return {
-              ...tx,
-              initiatorContractName,
-              acceptorContractName,
-              swapType: `${tokenTypeEnumToName(tx.data.swap.initiatorTokenType)} to ${tokenTypeEnumToName(tx.data.swap.acceptorTokenType)}`,
-            };
-          })
-        );
+        const fetchNames = async (events: any[]) =>
+          Promise.all(
+            events.map(async tx => {
+              const initiatorContractName = await fetchContractName(tx.data.swap.initiatorERCContract, signer);
+              const acceptorContractName = await fetchContractName(tx.data.swap.acceptorERCContract, signer);
+              return {
+                ...tx,
+                initiatorContractName,
+                acceptorContractName,
+                swapType: `${tokenTypeEnumToName(tx.data.swap.initiatorTokenType)} to ${tokenTypeEnumToName(
+                  tx.data.swap.acceptorTokenType
+                )}`,
+              };
+            })
+          );
 
-        // Fetch contract names for each completed transaction
-        const completedTransactionsWithNames = await Promise.all(
-          swapCompletedEvents.map(async (tx) => {
-            const initiatorContractName = await fetchContractName(tx.data.swap.initiatorERCContract, signer);
-            const acceptorContractName = await fetchContractName(tx.data.swap.acceptorERCContract, signer);
-            return {
-              ...tx,
-              initiatorContractName,
-              acceptorContractName,
-              swapType: `${tokenTypeEnumToName(tx.data.swap.initiatorTokenType)} to ${tokenTypeEnumToName(tx.data.swap.acceptorTokenType)}`,
-            };
-          })
-        );
+        const initiatedTransactionsWithNames = await fetchNames(filteredInitiatedEvents);
+        const completedTransactionsWithNames = await fetchNames(swapCompletedEvents);
 
         setInitiatedTransactions(initiatedTransactionsWithNames);
         setCompletedTransactions(completedTransactionsWithNames);
       } catch (error) {
         console.error('Error fetching transactions:', error);
-        setFormState((prevState) => ({ ...prevState, modalMessage: 'Error fetching transactions. Please try again.' }));
+        setFormState(prevState => ({ ...prevState, modalMessage: 'Error fetching transactions. Please try again.' }));
       }
     }
   }, [swapContract, signer]);
@@ -132,7 +120,7 @@ const Swapper: NextPage = () => {
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
   const parseSwapData = (data: any[]): any[] =>
-    data.map((value) => {
+    data.map(value => {
       if (typeof value === 'string' && value.startsWith('0x')) return value;
       if (BigNumber.isBigNumber(value)) return value.toNumber();
       if (typeof value === 'number') return value;
@@ -156,12 +144,12 @@ const Swapper: NextPage = () => {
     } = formState;
 
     if (!address || !swapContract) {
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
       return;
     }
 
     if (!initiatorTokenId || !acceptorTokenId || !acceptorAddress) {
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
       return;
     }
 
@@ -186,19 +174,19 @@ const Swapper: NextPage = () => {
       const receipt = tx.receipt;
       const swapIdHex = receipt?.logs?.[0]?.topics?.[1];
       if (swapIdHex) {
-        setFormState((prevState) => ({ ...prevState, swapId: parseInt(swapIdHex, 16) }));
+        setFormState(prevState => ({ ...prevState, swapId: parseInt(swapIdHex, 16) }));
       } else {
         throw new Error('Swap ID not found in receipt');
       }
     } catch (error) {
       console.error('Error initiating Swap:', error);
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Error initiating Swap. Please try again.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Error initiating Swap. Please try again.' }));
     }
   };
 
   const handleCompleteSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract) {
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
       return;
     }
 
@@ -210,45 +198,45 @@ const Swapper: NextPage = () => {
         value: ethers.utils.parseEther(ethPortion.toString()),
       });
 
-      setFormState((prevState) => ({
+      setFormState(prevState => ({
         ...prevState,
         modalMessage: `Swap with ID ${swapId} has been completed.`,
       }));
-      setInitiatedTransactions((prevTransactions) =>
-        prevTransactions.filter((tx) => tx.data.swapId.toString() !== swapId.toString())
+      setInitiatedTransactions(prevTransactions =>
+        prevTransactions.filter(tx => tx.data.swapId.toString() !== swapId.toString())
       );
     } catch (error) {
       console.error('Error completing swap:', error);
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Error completing swap. Please try again.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Error completing swap. Please try again.' }));
     }
   };
 
   const handleRemoveSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract) {
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
       return;
     }
 
     try {
       const parsedData = parseSwapData(swapData);
       await swapContract.call('removeSwap', [swapId, parsedData]);
-      setFormState((prevState) => ({
+      setFormState(prevState => ({
         ...prevState,
         modalMessage: `Swap with ID ${swapId} has been removed.`,
       }));
-      setInitiatedTransactions((prevTransactions) =>
-        prevTransactions.filter((tx) => tx.data.swapId.toString() !== swapId.toString())
+      setInitiatedTransactions(prevTransactions =>
+        prevTransactions.filter(tx => tx.data.swapId.toString() !== swapId.toString())
       );
     } catch (error) {
       console.error('Error removing swap:', error);
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Error removing swap. Please try again.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Error removing swap. Please try again.' }));
     }
   };
 
   const handleApprove = async () => {
     const { approveContractAddress, approveTokenId } = formState;
     if (!address || !approveContract) {
-      setFormState((prevState) => ({
+      setFormState(prevState => ({
         ...prevState,
         modalMessage: 'Wallet not connected or approval contract not found.',
       }));
@@ -256,21 +244,21 @@ const Swapper: NextPage = () => {
     }
 
     if (!approveContractAddress || !approveTokenId) {
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
       return;
     }
 
     try {
       const receipt = await approveContract.call('approve', [CONTRACT_ADDRESS, parseInt(approveTokenId)]);
       console.log('Token approval receipt:', receipt);
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Approval successful!' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
     } catch (error) {
       console.error('Error approving token:', error);
-      setFormState((prevState) => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
     }
   };
 
-  const closeModal = () => setFormState((prevState) => ({ ...prevState, modalMessage: null }));
+  const closeModal = () => setFormState(prevState => ({ ...prevState, modalMessage: null }));
 
   return (
     <div className={styles.main}>
@@ -324,7 +312,6 @@ const Swapper: NextPage = () => {
                     <li>Acceptor's Token Quantity</li>
                     <li>Acceptor's ETH Portion (optional)</li>
                   </ul>
-
                 </ul>
                 <h3>Approve the Token</h3>
                 <p>
@@ -482,13 +469,13 @@ const Swapper: NextPage = () => {
                     initiatedTransactions.map((tx, index) => (
                       <div key={index} className="swapBox">
                         <div className="swapContent">
-                          <p><strong>{tx.initiatorContractName} &#8596; {tx.acceptorContractName}</strong></p>
+                          <p><strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong></p>
                           <p><strong>{tx.swapType}</strong></p>
                           <p>
                             <strong>Swap ID:</strong> {tx.data.swapId.toString()}
                           </p>
                           <p>
-                            {abbreviateAddress(tx.data.swap.initiator)} &#8596; {abbreviateAddress(tx.data.swap.acceptor)}
+                            {abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}
                           </p>
                         </div>
                         <div className="swapActions">
@@ -525,10 +512,10 @@ const Swapper: NextPage = () => {
                     completedTransactions.map((tx, index) => (
                       <div key={index} className="swapBox">
                         <div className="swapContent">
-                          <p><strong>{tx.initiatorContractName} &#8596; {tx.acceptorContractName}</strong></p>
+                          <p><strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong></p>
                           <p><strong>{tx.swapType}</strong></p>
                           <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
-                          <p>{abbreviateAddress(tx.data.swap.initiator)} &#8596; {abbreviateAddress(tx.data.swap.acceptor)}</p>
+                          <p>{abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}</p>
                         </div>
                       </div>
                     ))
