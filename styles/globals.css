@@ -28,6 +28,31 @@ a {
   min-height: 100vh;
 }
 
+.status-dot {
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.status-dot.ready {
+  background-color: green;
+}
+
+.status-dot.partial {
+  background-color: yellow;
+}
+
+.status-dot.removed {
+  background-color: black;
+}
+
+.status-dot.complete {
+  background-color: white;
+  border: 1px solid black;
+}
+
 .swapContainer {
   display: flex;
   flex-direction: column;
@@ -40,7 +65,7 @@ a {
   margin-bottom: 1em;
   padding: 1em;
   border-radius: 10px;
-  width: auto;
+  width: 28em;
   display: flex;
   flex-direction: column;
   background: #f7f7f7;
