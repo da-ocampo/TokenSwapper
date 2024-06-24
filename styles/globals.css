@@ -40,6 +40,10 @@ a {
   background-color: green;
 }
 
+.status-dot.not-ready {
+  background-color: red;
+}
+
 .status-dot.partial {
   background-color: yellow;
 }
