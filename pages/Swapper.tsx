@@ -6,7 +6,7 @@ import styles from '../styles/Home.module.css';
 import Modal from './components/Modal';
 import { BigNumber, ethers } from 'ethers';
 
-const tokenTypeMap: { [key: string]: number } = {
+const tokenTypeMap: Record<string, number> = {
   NONE: 1,
   ERC20: 2,
   ERC721: 3,
@@ -55,6 +55,78 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any,
     console.error('Error fetching swap status:', error);
     return { status: 'Unknown', reason: '', dotClass: 'unknown' };
   }
+};
+
+const renderSwapBox = (
+  tx: any,
+  formState: any,
+  handleChange: any,
+  address: string,
+  approveContract: any,
+  handleApprove: any,
+  handleCompleteSwap: any,
+  handleRemoveSwap: any,
+  autofillApproveInputs: any
+) => {
+  return (
+    <div key={tx.data.swapId} className="swapBox">
+      <div className="swapContent">
+        <p>
+          <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
+        </p>
+        <p><strong>{tx.swapType}</strong></p>
+        <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
+        <p>{abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}</p>
+        <p>
+          <span className={`status-dot ${tx.dotClass}`}></span>
+          <em><strong> {tx.swapStatus || 'Loading...'}
+          {tx.swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}</strong></em>
+        </p>
+      </div>
+      <div className="swapActions">
+        {tx.data.swap.initiator === address && tx.swapStatus === 'Partially Ready' && (
+          <>
+            <Web3Button
+              className="button"
+              contractAddress={formState.approveContractAddress}
+              action={handleApprove}
+              isDisabled={false}
+            >
+              Approve Token
+            </Web3Button>
+            <Web3Button
+              className="button"
+              contractAddress={CONTRACT_ADDRESS}
+              action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
+              isDisabled={!address}
+            >
+              Remove Swap
+            </Web3Button>
+          </>
+        )}
+        {tx.data.swap.acceptor === address && tx.swapStatus === 'Partially Ready' && (
+          <Web3Button
+            className="button"
+            contractAddress={formState.approveContractAddress}
+            action={handleApprove}
+            isDisabled={false}
+          >
+            Approve Token
+          </Web3Button>
+        )}
+        {tx.data.swap.acceptor === address && tx.swapStatus !== 'Partially Ready' && (
+          <Web3Button
+            className="button"
+            contractAddress={CONTRACT_ADDRESS}
+            action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
+            isDisabled={!address}
+          >
+            Complete Swap
+          </Web3Button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const Swapper: NextPage = () => {
@@ -142,7 +214,6 @@ const Swapper: NextPage = () => {
           swapInitiatedEvents.filter(event => removedSwapIds.has(event.data.swapId.toString()) && event.data.swap.initiator === address)
         );
 
-        // Fetch status for each initiated and toAccept transaction
         for (const tx of initiatedTransactionsWithNames) {
           const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap, signer);
           tx.swapStatus = status.status;
@@ -297,11 +368,6 @@ const Swapper: NextPage = () => {
       return;
     }
 
-    if (!approveContractAddress || !approveTokenId) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
-      return;
-    }
-
     try {
       const receipt = await approveContract.call('approve', [CONTRACT_ADDRESS, parseInt(approveTokenId)]);
       console.log('Token approval receipt:', receipt);
@@ -312,7 +378,33 @@ const Swapper: NextPage = () => {
     }
   };
 
+  const autofillApproveInputs = (contractAddress: string, tokenId: string) => {
+    setFormState(prevState => ({
+      ...prevState,
+      approveContractAddress: contractAddress,
+      approveTokenId: tokenId,
+    }));
+  };
+
   const closeModal = () => setFormState(prevState => ({ ...prevState, modalMessage: null }));
+
+  useEffect(() => {
+    if (initiatedTransactions.length > 0) {
+      initiatedTransactions.forEach(tx => {
+        if (tx.swapStatus === 'Partially Ready' && tx.data.swap.initiator === address) {
+          autofillApproveInputs(tx.data.swap.initiatorERCContract, tx.data.swap.initiatorTokenId.toString());
+        }
+      });
+    }
+
+    if (toAcceptTransactions.length > 0) {
+      toAcceptTransactions.forEach(tx => {
+        if (tx.swapStatus === 'Partially Ready' && tx.data.swap.acceptor === address) {
+          autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString());
+        }
+      });
+    }
+  }, [initiatedTransactions, toAcceptTransactions, address]);
 
   return (
     <div className={styles.main}>
@@ -384,33 +476,6 @@ const Swapper: NextPage = () => {
                 )}
                 {address && (
                   <div>
-                    <div>
-                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Approve Token</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                        <input
-                          type="text"
-                          name="approveContractAddress"
-                          placeholder="Token Contract Address"
-                          value={formState.approveContractAddress}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="approveTokenId"
-                          placeholder="Token ID"
-                          value={formState.approveTokenId}
-                          onChange={handleChange}
-                        />
-                        <Web3Button
-                          className="button"
-                          contractAddress={formState.approveContractAddress}
-                          action={handleApprove}
-                          isDisabled={!address || !approveContract}
-                        >
-                          Approve Token
-                        </Web3Button>
-                      </div>
-                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
                       <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Enter Swap Information</h3>
                       <input
@@ -551,52 +616,7 @@ const Swapper: NextPage = () => {
                       {initiatedTransactions.length === 0 ? (
                         <p>No transactions found.</p>
                       ) : (
-                        initiatedTransactions.map((tx, index) => (
-                          <div key={index} className="swapBox">
-                            <div className="swapContent">
-                              <p>
-                                <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
-                              </p>
-                              <p><strong>{tx.swapType}</strong></p>
-                              <p>
-                                <strong>Swap ID:</strong> {tx.data.swapId.toString()}
-                              </p>
-                              <p>
-                                {abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}
-                              </p>
-                              <p>
-                                <span className={`status-dot ${tx.dotClass}`}></span>
-                                <em><strong> {tx.swapStatus || 'Loading...'}
-                                {tx.swapStatus === 'Partially Ready' && (
-                                <em>, {tx.swapReason}</em>
-                              )}
-                                </strong></em>
-                              </p>
-                            </div>
-                            <div className="swapActions">
-                              {tx.data.swap.initiator === address && (
-                                <Web3Button
-                                  className="button"
-                                  contractAddress={CONTRACT_ADDRESS}
-                                  action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                                  isDisabled={!address}
-                                >
-                                  Remove Swap
-                                </Web3Button>
-                              )}
-                              {tx.data.swap.acceptor === address && (
-                                <Web3Button
-                                  className="button"
-                                  contractAddress={CONTRACT_ADDRESS}
-                                  action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                                  isDisabled={!address}
-                                >
-                                  Complete Swap
-                                </Web3Button>
-                              )}
-                            </div>
-                          </div>
-                        ))
+                        initiatedTransactions.map(tx => renderSwapBox(tx, formState, handleChange, address, approveContract, handleApprove, handleCompleteSwap, handleRemoveSwap, autofillApproveInputs))
                       )}
                     </div>
                   ) : showInitiatedSwaps === 'toAccept' ? (
@@ -604,42 +624,7 @@ const Swapper: NextPage = () => {
                       {toAcceptTransactions.length === 0 ? (
                         <p>No transactions found.</p>
                       ) : (
-                        toAcceptTransactions.map((tx, index) => (
-                          <div key={index} className="swapBox">
-                            <div className="swapContent">
-                              <p>
-                                <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
-                              </p>
-                              <p><strong>{tx.swapType}</strong></p>
-                              <p>
-                                <strong>Swap ID:</strong> {tx.data.swapId.toString()}
-                              </p>
-                              <p>
-                                {abbreviateAddress(tx.data.swap.initiator)} ↔ {abbreviateAddress(tx.data.swap.acceptor)}
-                              </p>
-                              <p>
-                                <span className={`status-dot ${tx.dotClass}`}></span>
-                                <em><strong> {tx.swapStatus || 'Loading...'}
-                                {tx.swapStatus === 'Partially Ready' && (
-                                <em>, {tx.swapReason}</em>
-                              )}
-                                </strong></em>
-                              </p>
-                            </div>
-                            <div className="swapActions">
-                              {tx.data.swap.acceptor === address && (
-                                <Web3Button
-                                  className="button"
-                                  contractAddress={CONTRACT_ADDRESS}
-                                  action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                                  isDisabled={!address}
-                                >
-                                  Complete Swap
-                                </Web3Button>
-                              )}
-                            </div>
-                          </div>
-                        ))
+                        toAcceptTransactions.map(tx => renderSwapBox(tx, formState, handleChange, address, approveContract, handleApprove, handleCompleteSwap, handleRemoveSwap, autofillApproveInputs))
                       )}
                     </div>
                   ) : showInitiatedSwaps === 'completed' ? (
@@ -647,8 +632,8 @@ const Swapper: NextPage = () => {
                       {completedTransactions.length === 0 ? (
                         <p>No transactions found.</p>
                       ) : (
-                        completedTransactions.map((tx, index) => (
-                          <div key={index} className="swapBox">
+                        completedTransactions.map(tx => (
+                          <div key={tx.data.swapId} className="swapBox">
                             <div className="swapContent">
                               <p>
                                 <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
@@ -670,8 +655,8 @@ const Swapper: NextPage = () => {
                       {removedTransactions.length === 0 ? (
                         <p>No transactions found.</p>
                       ) : (
-                        removedTransactions.map((tx, index) => (
-                          <div key={index} className="swapBox">
+                        removedTransactions.map(tx => (
+                          <div key={tx.data.swapId} className="swapBox">
                             <div className="swapContent">
                               <p>
                                 <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
