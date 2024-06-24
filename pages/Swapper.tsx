@@ -142,6 +142,7 @@ const Swapper: NextPage = () => {
           swapInitiatedEvents.filter(event => removedSwapIds.has(event.data.swapId.toString()) && event.data.swap.initiator === address)
         );
 
+        // Fetch status for each initiated and toAccept transaction
         for (const tx of initiatedTransactionsWithNames) {
           const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap, signer);
           tx.swapStatus = status.status;
@@ -309,14 +310,6 @@ const Swapper: NextPage = () => {
       console.error('Error approving token:', error);
       setFormState(prevState => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
     }
-  };
-
-  const autofillApproveInputs = (contractAddress: string, tokenId: string) => {
-    setFormState(prevState => ({
-      ...prevState,
-      approveContractAddress: contractAddress,
-      approveTokenId: tokenId,
-    }));
   };
 
   const closeModal = () => setFormState(prevState => ({ ...prevState, modalMessage: null }));
@@ -581,35 +574,7 @@ const Swapper: NextPage = () => {
                               </p>
                             </div>
                             <div className="swapActions">
-                              {tx.data.swap.initiator === address && tx.swapStatus === 'Partially Ready' && (
-                                <div>
-                                  <input
-                                    type="text"
-                                    name="approveContractAddress"
-                                    placeholder="Token Contract Address"
-                                    value={formState.approveContractAddress}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.initiatorERCContract, tx.data.swap.initiatorTokenId.toString())}
-                                  />
-                                  <input
-                                    type="text"
-                                    name="approveTokenId"
-                                    placeholder="Token ID"
-                                    value={formState.approveTokenId}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.initiatorERCContract, tx.data.swap.initiatorTokenId.toString())}
-                                  />
-                                  <Web3Button
-                                    className="button"
-                                    contractAddress={formState.approveContractAddress}
-                                    action={handleApprove}
-                                    isDisabled={!address || !approveContract}
-                                  >
-                                    Approve Token
-                                  </Web3Button>
-                                </div>
-                              )}
-                              {tx.data.swap.initiator === address && tx.swapStatus !== 'Partially Ready' && (
+                              {tx.data.swap.initiator === address && (
                                 <Web3Button
                                   className="button"
                                   contractAddress={CONTRACT_ADDRESS}
@@ -619,35 +584,7 @@ const Swapper: NextPage = () => {
                                   Remove Swap
                                 </Web3Button>
                               )}
-                              {tx.data.swap.acceptor === address && tx.swapStatus === 'Partially Ready' && (
-                                <div>
-                                  <input
-                                    type="text"
-                                    name="approveContractAddress"
-                                    placeholder="Token Contract Address"
-                                    value={formState.approveContractAddress}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString())}
-                                  />
-                                  <input
-                                    type="text"
-                                    name="approveTokenId"
-                                    placeholder="Token ID"
-                                    value={formState.approveTokenId}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString())}
-                                  />
-                                  <Web3Button
-                                    className="button"
-                                    contractAddress={formState.approveContractAddress}
-                                    action={handleApprove}
-                                    isDisabled={!address || !approveContract}
-                                  >
-                                    Approve Token
-                                  </Web3Button>
-                                </div>
-                              )}
-                              {tx.data.swap.acceptor === address && tx.swapStatus !== 'Partially Ready' && (
+                              {tx.data.swap.acceptor === address && (
                                 <Web3Button
                                   className="button"
                                   contractAddress={CONTRACT_ADDRESS}
@@ -690,35 +627,7 @@ const Swapper: NextPage = () => {
                               </p>
                             </div>
                             <div className="swapActions">
-                              {tx.data.swap.acceptor === address && tx.swapStatus === 'Partially Ready' && (
-                                <div>
-                                  <input
-                                    type="text"
-                                    name="approveContractAddress"
-                                    placeholder="Token Contract Address"
-                                    value={formState.approveContractAddress}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString())}
-                                  />
-                                  <input
-                                    type="text"
-                                    name="approveTokenId"
-                                    placeholder="Token ID"
-                                    value={formState.approveTokenId}
-                                    onChange={handleChange}
-                                    onFocus={() => autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString())}
-                                  />
-                                  <Web3Button
-                                    className="button"
-                                    contractAddress={formState.approveContractAddress}
-                                    action={handleApprove}
-                                    isDisabled={!address || !approveContract}
-                                  >
-                                    Approve Token
-                                  </Web3Button>
-                                </div>
-                              )}
-                              {tx.data.swap.acceptor === address && tx.swapStatus !== 'Partially Ready' && (
+                              {tx.data.swap.acceptor === address && (
                                 <Web3Button
                                   className="button"
                                   contractAddress={CONTRACT_ADDRESS}
