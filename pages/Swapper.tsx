@@ -70,6 +70,54 @@ const renderSwapBox = (
   const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus;
   const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass;
 
+  const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (
+    <Web3Button
+      className="button"
+      contractAddress={contractAddress}
+      action={action}
+      isDisabled={isDisabled}
+    >
+      {buttonText}
+    </Web3Button>
+  );
+
+  const renderActionButton = () => {
+    const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
+
+    if (initiator === address) {
+      if (swapStatus === 'Not Ready') {
+        return (
+          <>
+            {renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress)}
+            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
+          </>
+        );
+      }
+      if (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token') {
+        return (
+          <>
+            {renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress)}
+            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
+          </>
+        );
+      }
+      if (swapStatus === 'Ready') {
+        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
+      }
+    }
+    if (acceptor === address) {
+      if (swapStatus === 'Not Ready') {
+        return renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress);
+      }
+      if (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token') {
+        return renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress);
+      }
+      if (swapStatus === 'Ready') {
+        return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
+      }
+    }
+  };
+
   return (
     <div key={tx.data.swapId} className="swapBox">
       <div className="swapContent">
@@ -88,92 +136,7 @@ const renderSwapBox = (
       </div>
       {!isCompleted && !isRemoved && (
         <div className="swapActions">
-          {tx.data.swap.initiator === address && (
-            <>
-              {tx.swapStatus === 'Not Ready' && (
-                <>
-                  <Web3Button
-                    className="button"
-                    contractAddress={formState.approveContractAddress}
-                    action={handleApprove}
-                    isDisabled={false}
-                  >
-                    Approve Token
-                  </Web3Button>
-                  <Web3Button
-                    className="button"
-                    contractAddress={CONTRACT_ADDRESS}
-                    action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                    isDisabled={!address}
-                  >
-                    Remove Swap
-                  </Web3Button>
-                </>
-              )}
-              {tx.swapStatus === 'Partially Ready' && (
-                <>
-                  {tx.swapReason === 'initiator must approve token' && (
-                    <>
-                      <Web3Button
-                        className="button"
-                        contractAddress={formState.approveContractAddress}
-                        action={handleApprove}
-                        isDisabled={false}
-                      >
-                        Approve Token
-                      </Web3Button>
-                    </>
-                  )}
-                  <Web3Button
-                    className="button"
-                    contractAddress={CONTRACT_ADDRESS}
-                    action={() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                    isDisabled={!address}
-                  >
-                    Remove Swap
-                  </Web3Button>
-                </>
-              )}
-            </>
-          )}
-          {tx.data.swap.acceptor === address && (
-            <>
-              {tx.swapStatus === 'Not Ready' && (
-                <Web3Button
-                  className="button"
-                  contractAddress={formState.approveContractAddress}
-                  action={handleApprove}
-                  isDisabled={false}
-                >
-                  Approve Token
-                </Web3Button>
-              )}
-              {tx.swapStatus === 'Partially Ready' && (
-                <>
-                  {tx.swapReason === 'acceptor must approve token' && (
-                    <Web3Button
-                      className="button"
-                      contractAddress={formState.approveContractAddress}
-                      action={handleApprove}
-                      isDisabled={false}
-                    >
-                      Approve Token
-                    </Web3Button>
-                  )}
-                </>
-              )}
-              {tx.swapStatus === 'Ready' && (
-                <Web3Button
-                  className="button"
-                  contractAddress={CONTRACT_ADDRESS}
-                  action={() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap)}
-                  isDisabled={!address}
-                >
-                  Complete Swap
-                </Web3Button>
-              )}
-            </>
-          )}
+          {renderActionButton()}
         </div>
       )}
     </div>
@@ -290,7 +253,7 @@ const Swapper: NextPage = () => {
   }, [swapContract, signer, address]);
 
   useEffect(() => {
-    const interval = setInterval(fetchTransactions, 1000); // Poll every 10 seconds
+    const interval = setInterval(fetchTransactions, 5000);
     return () => clearInterval(interval);
   }, [fetchTransactions]);
 
