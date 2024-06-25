@@ -94,17 +94,26 @@ const renderSwapBox = (
   );
 
   const renderActionButton = () => {
-    const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
+    const { swapStatus, swapReason, data: { swap: { initiator, acceptor, initiatorNeedsToOwnToken, acceptorNeedsToOwnToken } } } = tx;
 
     if (initiator === address) {
-      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token')) {
+      if (initiatorNeedsToOwnToken) {
         return (
           <>
-            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
             {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
           </>
         );
       }
+
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token')) {
+        return (
+          <>
+            {!initiatorNeedsToOwnToken && renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
+            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
+          </>
+        );
+      }
+
       if (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token') {
         return (
           <>
@@ -112,18 +121,25 @@ const renderSwapBox = (
           </>
         );
       }
+
       if (swapStatus === 'Ready') {
         return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
     }
+
     if (acceptor === address) {
+      if (acceptorNeedsToOwnToken) {
+        return null;
+      }
+
       if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token')) {
         return (
           <>
-            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
+            {!acceptorNeedsToOwnToken && renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
           </>
         );
       }
+
       if (swapStatus === 'Ready') {
         return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
       }
@@ -218,7 +234,7 @@ const Swapper: NextPage = () => {
             ...prevState,
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.initiatorERCContract,
-              approveTokenId: tx.data.swap.initiatorTokenId.toString(),
+              approveTokenId: tx.data.swap.initiatorTokenId?.toString() || '',
             }
           }));
         }
@@ -231,7 +247,7 @@ const Swapper: NextPage = () => {
             ...prevState,
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.acceptorERCContract,
-              approveTokenId: tx.data.swap.acceptorTokenId.toString(),
+              approveTokenId: tx.data.swap.acceptorTokenId?.toString() || '',
             }
           }));
         }
@@ -248,7 +264,7 @@ const Swapper: NextPage = () => {
   }, [swapContract, signer, address]);
 
   useEffect(() => {
-    const interval = setInterval(fetchTransactions, 5000);
+    const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
   }, [fetchTransactions]);
 
@@ -306,10 +322,10 @@ const Swapper: NextPage = () => {
         },
       ]);
 
-      const receipt = await tx.wait();
+      const receipt = tx.receipt;
       const swapIdHex = receipt?.logs?.[0]?.topics?.[1];
       if (swapIdHex) {
-        setFormState(prevState => ({ ...prevState, swapId: parseInt(swapIdHex, 16) }));
+        setFormState(prevState => ({ ...prevState, swapId: parseInt(swapIdHex, 16), modalMessage: `Swap successfully initiated! Your Swap ID is ${parseInt(swapIdHex, 16)}` }));
       } else {
         throw new Error('Swap ID not found in receipt');
       }
@@ -381,7 +397,8 @@ const Swapper: NextPage = () => {
 
     try {
       const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
-      const receipt = await approveContract.approve(CONTRACT_ADDRESS, parseInt(approveTokenId));
+      const tx = await approveContract.approve(CONTRACT_ADDRESS, parseInt(approveTokenId));
+      const receipt = tx.receipt;
       console.log('Token approval receipt:', receipt);
       setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
     } catch (error) {
@@ -468,24 +485,24 @@ const Swapper: NextPage = () => {
                         type="text"
                         name="initiatorTokenId"
                         placeholder="Your Token ID"
-                        value={formState.initiatorTokenId}
+                        value={formState.initiatorTokenId || ''}
                         onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                       />
                       <input
                         type="text"
                         name="acceptorTokenId"
                         placeholder="Acceptor's Token ID"
-                        value={formState.acceptorTokenId}
+                        value={formState.acceptorTokenId || ''}
                         onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                       />
                       <input
                         type="text"
                         name="acceptorAddress"
                         placeholder="Acceptor's Wallet Address"
-                        value={formState.acceptorAddress}
+                        value={formState.acceptorAddress || ''}
                         onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                       />
-                      <select name="initiatorTokenType" value={formState.initiatorTokenType} onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}>
+                      <select name="initiatorTokenType" value={formState.initiatorTokenType || 'NONE'} onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}>
                         <option value="NONE">None</option>
                         <option value="ERC20">ERC20</option>
                         <option value="ERC721">ERC721</option>
@@ -497,14 +514,14 @@ const Swapper: NextPage = () => {
                             type="text"
                             name="initiatorERCContract"
                             placeholder="Initiator's Token Contract Address"
-                            value={formState.initiatorERCContract}
+                            value={formState.initiatorERCContract || ''}
                             onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
                           />
                           <input
                             type="text"
                             name="initiatorTokenQuantity"
                             placeholder="Initiator's Token Quantity"
-                            value={formState.initiatorTokenQuantity}
+                            value={formState.initiatorTokenQuantity || ''}
                             onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
                           />
                         </>
@@ -513,10 +530,10 @@ const Swapper: NextPage = () => {
                         type="text"
                         name="initiatorETHPortion"
                         placeholder="Initiator's ETH Portion"
-                        value={formState.initiatorETHPortion}
+                        value={formState.initiatorETHPortion || ''}
                         onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
                       />
-                      <select name="acceptorTokenType" value={formState.acceptorTokenType} onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}>
+                      <select name="acceptorTokenType" value={formState.acceptorTokenType || 'NONE'} onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}>
                         <option value="NONE">None</option>
                         <option value="ERC20">ERC20</option>
                         <option value="ERC721">ERC721</option>
@@ -528,14 +545,14 @@ const Swapper: NextPage = () => {
                             type="text"
                             name="acceptorERCContract"
                             placeholder="Acceptor's Token Contract Address"
-                            value={formState.acceptorERCContract}
+                            value={formState.acceptorERCContract || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
                           />
                           <input
                             type="text"
                             name="acceptorTokenQuantity"
                             placeholder="Acceptor's Token Quantity"
-                            value={formState.acceptorTokenQuantity}
+                            value={formState.acceptorTokenQuantity || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
                           />
                         </>
@@ -544,7 +561,7 @@ const Swapper: NextPage = () => {
                         type="text"
                         name="acceptorETHPortion"
                         placeholder="Acceptor's ETH Portion"
-                        value={formState.acceptorETHPortion}
+                        value={formState.acceptorETHPortion || ''}
                         onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
                       />
                       <Web3Button
