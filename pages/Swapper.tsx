@@ -32,7 +32,19 @@ const fetchContractName = async (contractAddress: string, signer: any) => {
 const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
-    const { initiatorTokenRequiresApproval, acceptorTokenRequiresApproval, isReadyForSwapping } = swapStatus;
+    const { initiatorTokenRequiresApproval, acceptorTokenRequiresApproval, isReadyForSwapping, initiatorNeedsToOwnToken, acceptorNeedsToOwnToken } = swapStatus;
+
+    if (initiatorNeedsToOwnToken && acceptorNeedsToOwnToken) {
+      return { status: 'Not Ready', reason: 'The initiator and acceptor do not own the tokens specified in the swap details, please initiate a new swap', dotClass: 'not-ready' };
+    }
+
+    if (initiatorNeedsToOwnToken) {
+      return { status: 'Not Ready', reason: 'Initiator does not own the token specified in the swap', dotClass: 'not-ready' };
+    }
+
+    if (acceptorNeedsToOwnToken) {
+      return { status: 'Not Ready', reason: 'Acceptor does not own the token specified in the swap', dotClass: 'not-ready' };
+    }
 
     if (initiatorTokenRequiresApproval && acceptorTokenRequiresApproval) {
       return { status: 'Not Ready', reason: 'both parties must approve their tokens', dotClass: 'not-ready' };
@@ -456,13 +468,6 @@ const Swapper: NextPage = () => {
             <section id="initSwap" className="guide-grid">
               <div className="guide-left">
                 <h3>How To Initiate The Swap</h3>
-                <p>
-                  Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
-                </p>
-                <ul>
-                  <li>Enter the Token ID in the Approve Token field.</li>
-                  <li>Approve the contract to access your token.</li>
-                </ul>
                 <p>As the initiator, provide the following information:</p>
                 <ul>
                   <li>Initiator's Token ID</li>
@@ -605,25 +610,25 @@ const Swapper: NextPage = () => {
                       className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('initiated')}
                     >
-                      Initiated Swaps
+                      Initiated
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('toAccept')}
                     >
-                      To Accept Swaps
+                      To Accept
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('completed')}
                     >
-                      Completed Swaps
+                      Completed
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('removed')}
                     >
-                      Removed Swaps
+                      Removed
                     </button>
                   </div>
                   <div className="swapContainer">
