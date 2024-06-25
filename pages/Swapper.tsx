@@ -394,18 +394,21 @@ const Swapper: NextPage = () => {
       }));
       return;
     }
-
+  
     try {
       const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
       const tx = await approveContract.approve(CONTRACT_ADDRESS, parseInt(approveTokenId));
-      const receipt = tx.receipt;
-      console.log('Token approval receipt:', receipt);
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
+  
+      const provider = approveContract.provider;
+      provider.once(tx.hash, () => {
+        setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
+      });
     } catch (error) {
       console.error('Error approving token:', error);
       setFormState(prevState => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
     }
   };
+  
 
   const closeModal = () => setFormState(prevState => ({ ...prevState, modalMessage: null }));
 
@@ -444,13 +447,6 @@ const Swapper: NextPage = () => {
             <section id="initSwap" className="guide-grid">
               <div>
                 <h3>How To Initiate The Swap</h3>
-                <p>
-                  Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
-                </p>
-                <ul>
-                  <li>Enter the Token ID in the Approve Token field.</li>
-                  <li>Approve the contract to access your token.</li>
-                </ul>
                 <p>As the initiator, provide the following information:</p>
                 <ul>
                   <li>Initiator's Token ID</li>
