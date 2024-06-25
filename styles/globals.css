@@ -2,7 +2,7 @@
 html, body {
   padding: 0;
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'MS UI Gothic', Arial, sans-serif;
   color: #000;
   background: #fff;
   scroll-behavior: smooth;
@@ -172,7 +172,7 @@ a {
 input[type="text"], select {
   width: 50%;
   padding: 1em;
-  font-family: 'Inter', sans-serif;
+  font-family: 'MS UI Gothic', Arial, sans-serif;
   border: 1px solid #ccc;
   border-radius: 10px;
   box-sizing: border-box;
@@ -235,7 +235,7 @@ input[type="text"]:focus, select:focus {
   border: none;
   padding: 0.5em 1em;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'MS UI Gothic', Arial, sans-serif;
   opacity: 0.5;
   transition: color 0.3s;
 }

@@ -73,9 +73,9 @@ const renderSwapBox = (
   tx: any,
   formState: any,
   address: string,
-  handleApprove: any,
-  handleCompleteSwap: any,
-  handleRemoveSwap: any,
+  handleApprove: (swapId: number) => void,
+  handleCompleteSwap: (swapId: number, swapData: any) => void,
+  handleRemoveSwap: (swapId: number, swapData: any) => void,
   isCompleted: boolean = false,
   isRemoved: boolean = false
 ) => {
@@ -97,18 +97,17 @@ const renderSwapBox = (
     const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
 
     if (initiator === address) {
-      if (swapStatus === 'Not Ready') {
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token')) {
         return (
           <>
-            {renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress)}
+            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
             {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
           </>
         );
       }
-      if (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token') {
+      if (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token') {
         return (
           <>
-            {renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress)}
             {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
           </>
         );
@@ -118,11 +117,12 @@ const renderSwapBox = (
       }
     }
     if (acceptor === address) {
-      if (swapStatus === 'Not Ready') {
-        return renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress);
-      }
-      if (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token') {
-        return renderWeb3Button(handleApprove, 'Approve Token', formState.approveContractAddress);
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token')) {
+        return (
+          <>
+            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()].approveContractAddress)}
+          </>
+        );
       }
       if (swapStatus === 'Ready') {
         return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
@@ -159,44 +159,13 @@ const Swapper: NextPage = () => {
   const address = useAddress();
   const { contract: swapContract } = useContract(CONTRACT_ADDRESS);
   const signer = useSigner();
-  const [formState, setFormState] = useState({
-    initiatorTokenId: '',
-    acceptorTokenId: '',
-    acceptorAddress: '',
-    swapId: null as number | null,
-    modalMessage: null as string | null,
-    initiatorTokenType: 'NONE',
-    initiatorERCContract: '',
-    initiatorTokenQuantity: '',
-    initiatorETHPortion: '',
-    acceptorTokenType: 'NONE',
-    acceptorERCContract: '',
-    acceptorTokenQuantity: '',
-    acceptorETHPortion: '',
-    approveContractAddress: '',
-    approveTokenId: '',
-  });
+  const [formState, setFormState] = useState<Record<string, any>>({});
   const [initiatedTransactions, setInitiatedTransactions] = useState<any[]>([]);
   const [toAcceptTransactions, setToAcceptTransactions] = useState<any[]>([]);
   const [completedTransactions, setCompletedTransactions] = useState<any[]>([]);
   const [removedTransactions, setRemovedTransactions] = useState<any[]>([]);
   const [showInitiatedSwaps, setShowInitiatedSwaps] = useState<'initiated' | 'toAccept' | 'completed' | 'removed'>('initiated');
-  const { contract: approveContract } = useContract(formState.approveContractAddress);
-  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList'>('initSwap');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormState(prevState => ({ ...prevState, [name]: value }));
-  };
-
-  useEffect(() => {
-    if (formState.swapId !== null) {
-      setFormState(prevState => ({
-        ...prevState,
-        modalMessage: `Swap successfully initiated! Your Swap ID is ${formState.swapId}`,
-      }));
-    }
-  }, [formState.swapId]);
+  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList'>('swapList');
 
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer) {
@@ -245,12 +214,26 @@ const Swapper: NextPage = () => {
           tx.swapStatus = status.status;
           tx.swapReason = status.reason;
           tx.dotClass = status.dotClass;
+          setFormState(prevState => ({
+            ...prevState,
+            [tx.data.swapId.toString()]: {
+              approveContractAddress: tx.data.swap.initiatorERCContract,
+              approveTokenId: tx.data.swap.initiatorTokenId.toString(),
+            }
+          }));
         }
         for (const tx of toAcceptTransactionsWithNames) {
           const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap);
           tx.swapStatus = status.status;
           tx.swapReason = status.reason;
           tx.dotClass = status.dotClass;
+          setFormState(prevState => ({
+            ...prevState,
+            [tx.data.swapId.toString()]: {
+              approveContractAddress: tx.data.swap.acceptorERCContract,
+              approveTokenId: tx.data.swap.acceptorTokenId.toString(),
+            }
+          }));
         }
 
         setInitiatedTransactions(initiatedTransactionsWithNames);
@@ -323,7 +306,7 @@ const Swapper: NextPage = () => {
         },
       ]);
 
-      const receipt = tx.receipt;
+      const receipt = await tx.wait();
       const swapIdHex = receipt?.logs?.[0]?.topics?.[1];
       if (swapIdHex) {
         setFormState(prevState => ({ ...prevState, swapId: parseInt(swapIdHex, 16) }));
@@ -385,9 +368,10 @@ const Swapper: NextPage = () => {
     }
   };
 
-  const handleApprove = async () => {
-    const { approveContractAddress, approveTokenId } = formState;
-    if (!address || !approveContract) {
+  const handleApprove = async (swapId: number) => {
+    const form = formState[swapId.toString()];
+    const { approveContractAddress, approveTokenId } = form;
+    if (!address || !approveContractAddress) {
       setFormState(prevState => ({
         ...prevState,
         modalMessage: 'Wallet not connected or approval contract not found.',
@@ -396,7 +380,8 @@ const Swapper: NextPage = () => {
     }
 
     try {
-      const receipt = await approveContract.call('approve', [CONTRACT_ADDRESS, parseInt(approveTokenId)]);
+      const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
+      const receipt = await approveContract.approve(CONTRACT_ADDRESS, parseInt(approveTokenId));
       console.log('Token approval receipt:', receipt);
       setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
     } catch (error) {
@@ -405,33 +390,7 @@ const Swapper: NextPage = () => {
     }
   };
 
-  const autofillApproveInputs = (contractAddress: string, tokenId: string) => {
-    setFormState(prevState => ({
-      ...prevState,
-      approveContractAddress: contractAddress,
-      approveTokenId: tokenId,
-    }));
-  };
-
   const closeModal = () => setFormState(prevState => ({ ...prevState, modalMessage: null }));
-
-  useEffect(() => {
-    if (initiatedTransactions.length > 0) {
-      initiatedTransactions.forEach(tx => {
-        if ((tx.swapStatus === 'Partially Ready' || tx.swapStatus === 'Not Ready') && tx.data.swap.initiator === address) {
-          autofillApproveInputs(tx.data.swap.initiatorERCContract, tx.data.swap.initiatorTokenId.toString());
-        }
-      });
-    }
-
-    if (toAcceptTransactions.length > 0) {
-      toAcceptTransactions.forEach(tx => {
-        if ((tx.swapStatus === 'Partially Ready' || tx.swapStatus === 'Not Ready') && tx.data.swap.acceptor === address) {
-          autofillApproveInputs(tx.data.swap.acceptorERCContract, tx.data.swap.acceptorTokenId.toString());
-        }
-      });
-    }
-  }, [initiatedTransactions, toAcceptTransactions, address]);
 
   return (
     <div className={styles.main}>
@@ -446,18 +405,18 @@ const Swapper: NextPage = () => {
             <ul className="navList">
               <li className="navItem">
                 <a
-                  className={`toggle-button ${currentPage === 'initSwap' ? 'active' : ''}`}
-                  onClick={() => setCurrentPage('initSwap')}
-                >
-                  Start New Swap
-                </a>
-              </li>
-              <li className="navItem">
-                <a
                   className={`toggle-button ${currentPage === 'swapList' ? 'active' : ''}`}
                   onClick={() => setCurrentPage('swapList')}
                 >
                   Swaps
+                </a>
+              </li>
+              <li className="navItem">
+                <a
+                  className={`toggle-button ${currentPage === 'initSwap' ? 'active' : ''}`}
+                  onClick={() => setCurrentPage('initSwap')}
+                >
+                  Start New Swap
                 </a>
               </li>
             </ul>
@@ -466,7 +425,7 @@ const Swapper: NextPage = () => {
         <div className="main-content">
           {currentPage === 'initSwap' && (
             <section id="initSwap" className="guide-grid">
-              <div className="guide-left">
+              <div>
                 <h3>How To Initiate The Swap</h3>
                 <p>
                   Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
@@ -494,7 +453,7 @@ const Swapper: NextPage = () => {
                   </ul>
                 </ul>
               </div>
-              <div className="guide-right">
+              <div>
                 {!address && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
                     <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Connect Your Wallet</h3>
@@ -510,23 +469,23 @@ const Swapper: NextPage = () => {
                         name="initiatorTokenId"
                         placeholder="Your Token ID"
                         value={formState.initiatorTokenId}
-                        onChange={handleChange}
+                        onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                       />
                       <input
                         type="text"
                         name="acceptorTokenId"
                         placeholder="Acceptor's Token ID"
                         value={formState.acceptorTokenId}
-                        onChange={handleChange}
+                        onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                       />
                       <input
                         type="text"
                         name="acceptorAddress"
                         placeholder="Acceptor's Wallet Address"
                         value={formState.acceptorAddress}
-                        onChange={handleChange}
+                        onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                       />
-                      <select name="initiatorTokenType" value={formState.initiatorTokenType} onChange={handleChange}>
+                      <select name="initiatorTokenType" value={formState.initiatorTokenType} onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}>
                         <option value="NONE">None</option>
                         <option value="ERC20">ERC20</option>
                         <option value="ERC721">ERC721</option>
@@ -539,14 +498,14 @@ const Swapper: NextPage = () => {
                             name="initiatorERCContract"
                             placeholder="Initiator's Token Contract Address"
                             value={formState.initiatorERCContract}
-                            onChange={handleChange}
+                            onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
                           />
                           <input
                             type="text"
                             name="initiatorTokenQuantity"
                             placeholder="Initiator's Token Quantity"
                             value={formState.initiatorTokenQuantity}
-                            onChange={handleChange}
+                            onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
                           />
                         </>
                       )}
@@ -555,9 +514,9 @@ const Swapper: NextPage = () => {
                         name="initiatorETHPortion"
                         placeholder="Initiator's ETH Portion"
                         value={formState.initiatorETHPortion}
-                        onChange={handleChange}
+                        onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
                       />
-                      <select name="acceptorTokenType" value={formState.acceptorTokenType} onChange={handleChange}>
+                      <select name="acceptorTokenType" value={formState.acceptorTokenType} onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}>
                         <option value="NONE">None</option>
                         <option value="ERC20">ERC20</option>
                         <option value="ERC721">ERC721</option>
@@ -570,14 +529,14 @@ const Swapper: NextPage = () => {
                             name="acceptorERCContract"
                             placeholder="Acceptor's Token Contract Address"
                             value={formState.acceptorERCContract}
-                            onChange={handleChange}
+                            onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
                           />
                           <input
                             type="text"
                             name="acceptorTokenQuantity"
                             placeholder="Acceptor's Token Quantity"
                             value={formState.acceptorTokenQuantity}
-                            onChange={handleChange}
+                            onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
                           />
                         </>
                       )}
@@ -586,7 +545,7 @@ const Swapper: NextPage = () => {
                         name="acceptorETHPortion"
                         placeholder="Acceptor's ETH Portion"
                         value={formState.acceptorETHPortion}
-                        onChange={handleChange}
+                        onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
                       />
                       <Web3Button
                         className="button"
@@ -604,7 +563,7 @@ const Swapper: NextPage = () => {
           )}
           {currentPage === 'swapList' && (
             <section id="swapList">
-              <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Available Swaps</h3>
+              <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Swaps List</h3>
               {!address && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
                   <ConnectWallet />
@@ -640,7 +599,7 @@ const Swapper: NextPage = () => {
                   </div>
                   <div className="swapContainer">
                     {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
-                      <p>No transactions found.</p>
+                      <p>No transactions found. <a href="#" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</a></p>
                     ) : (
                       initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap))
                     ))}

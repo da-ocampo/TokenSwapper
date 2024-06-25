@@ -44,7 +44,7 @@ const Home: NextPage = () => {
         <div className="guide">
           <main>
             <section>
-              <div id="exchange">
+              <div>
                 <div className={styles.swapContent}>
                   <Swapper />
                 </div>
