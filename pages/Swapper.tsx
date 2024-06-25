@@ -468,6 +468,13 @@ const Swapper: NextPage = () => {
             <section id="initSwap" className="guide-grid">
               <div className="guide-left">
                 <h3>How To Initiate The Swap</h3>
+                <p>
+                  Both the initiator and the acceptor need to approve the Token Swapper contract to access their tokens:
+                </p>
+                <ul>
+                  <li>Enter the Token ID in the Approve Token field.</li>
+                  <li>Approve the contract to access your token.</li>
+                </ul>
                 <p>As the initiator, provide the following information:</p>
                 <ul>
                   <li>Initiator's Token ID</li>
@@ -610,25 +617,25 @@ const Swapper: NextPage = () => {
                       className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('initiated')}
                     >
-                      Initiated
+                      Initiated Swaps
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('toAccept')}
                     >
-                      To Accept
+                      To Accept Swaps
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('completed')}
                     >
-                      Completed
+                      Completed Swaps
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('removed')}
                     >
-                      Removed
+                      Removed Swaps
                     </button>
                   </div>
                   <div className="swapContainer">
