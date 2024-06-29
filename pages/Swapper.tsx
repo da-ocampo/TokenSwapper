@@ -713,8 +713,8 @@ const Swapper: NextPage = () => {
           <div style={{ textAlign: 'left' }}>
             <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
             <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
-            <p><strong>Initiator ERC Contract Address:</strong> {modalData.initiatorERCContract}</p>
-            <p><strong>Acceptor ERC Contract Address:</strong> {modalData.acceptorERCContract}</p>
+            <p><strong>Initiators Contract Address:</strong> {modalData.initiatorERCContract}</p>
+            <p><strong>Acceptors Contract Address:</strong> {modalData.acceptorERCContract}</p>
             <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenId}</p>
             <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenId}</p>
             <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenQuantity}</p>
