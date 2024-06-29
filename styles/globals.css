@@ -90,6 +90,19 @@ a {
   margin-top: 1em;
 }
 
+.form-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5em;
+  width: 100%;
+}
+
+.form-group label {
+  flex: 0 0 10em;
+  margin-right: 1.5em;
+  font-weight: bold;
+}
+
 .button, .modal button {
   margin-top: 1em;
   background-color: #000;
