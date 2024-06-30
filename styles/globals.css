@@ -65,11 +65,11 @@ a {
 }
 
 .swapBox {
-  margin-top: 1em;
-  margin-bottom: 1em;
+  margin: 1em 0;
   padding: 1em;
   border-radius: 10px;
-  width: 28em;
+  width: 90%;
+  max-width: 28em;
   display: flex;
   flex-direction: column;
   background: #f7f7f7;
@@ -130,9 +130,6 @@ a {
 .main-content {
   flex: 1;
   width: 100%;
-}
-
-.main-content {
   border-radius: 10px;
   margin: 2em 0;
   background-color: #fff;
@@ -143,7 +140,8 @@ a {
 /* Guide Styles */
 .guide {
   margin: 0 auto;
-  width: 55em;
+  width: 90%;
+  max-width: 55em;
   padding: 1em 0;
 }
 
@@ -183,7 +181,7 @@ a {
 
 /* Input Box Styles */
 input[type="text"], select {
-  width: 50%;
+  width: 100%;
   padding: 1em;
   font-family: 'MS UI Gothic', Arial, sans-serif;
   border: 1px solid #ccc;
@@ -283,7 +281,7 @@ input[type="text"]:focus, select:focus {
   }
 
   .guide {
-    width: 80%;
+    width: 90%;
   }
 }
 
@@ -315,9 +313,21 @@ input[type="text"]:focus, select:focus {
   .navItem {
     margin: 0.5em 0;
   }
+
+
 }
 
 @media only screen and (max-width: 480px) {
+  .swapActions {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .swapActions button {
+    margin-top: 1em;
+  }
+
   .header, .navbar, .guide-grid {
     flex-direction: column;
     align-items: center;
@@ -332,13 +342,11 @@ input[type="text"]:focus, select:focus {
     padding: 1em;
   }
 
-  .button button,
-  .modal button {
+  .button, .modal button {
     height: 4em;
   }
 
-  .guide,
-  input[type="text"] {
+  .guide, input[type="text"] {
     width: 100%;
   }
 
