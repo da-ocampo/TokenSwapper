@@ -6,6 +6,7 @@ import styles from '../styles/Home.module.css';
 import Modal from './components/Modal';
 import { BigNumber, ethers } from 'ethers';
 
+// Token type map
 const tokenTypeMap: Record<string, number> = {
   NONE: 0,
   ERC20: 1,
@@ -163,7 +164,6 @@ const renderSwapBox = (
     }
   };
   
-
   const initiatorAddress = tx.data.swap.initiator === address ? 'You' : abbreviateAddress(tx.data.swap.initiator);
   const acceptorAddress = tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor);
 
