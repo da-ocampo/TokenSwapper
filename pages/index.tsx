@@ -36,6 +36,29 @@ const Home: NextPage = () => {
     }
   }, [address, contract, isLoading, error]);
 
+  useEffect(() => {
+    const handleAccountsChanged = async (accounts: string[]) => {
+      if (accounts.length === 0) {
+        disconnect();
+      } else {
+        const newAddress = accounts[0];
+        if (newAddress !== address) {
+          setWalletConnected(true);
+        }
+      }
+    };
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      }
+    };
+  }, [address, disconnect]);
+
   const closeModal = () => setSuccessMessage(null);
 
   return (

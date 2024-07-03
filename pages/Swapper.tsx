@@ -6,7 +6,7 @@ import styles from '../styles/Home.module.css';
 import Modal from './components/Modal';
 import { BigNumber, ethers } from 'ethers';
 
-// Token type map
+// Constants
 const tokenTypeMap: Record<string, number> = {
   NONE: 0,
   ERC20: 1,
@@ -15,6 +15,7 @@ const tokenTypeMap: Record<string, number> = {
   ERC1155: 4,
 };
 
+// Utility Functions
 const tokenTypeEnumToName = (enumValue: number): string =>
   Object.keys(tokenTypeMap).find(key => tokenTypeMap[key] === enumValue) || 'Unknown';
 
@@ -39,37 +40,41 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any)
     if (initiatorNeedsToOwnToken && acceptorNeedsToOwnToken) {
       return { status: 'Not Ready', reason: 'The initiator and acceptor do not own the tokens specified in the swap details, please start a new swap with the correct details', dotClass: 'not-ready' };
     }
-
     if (initiatorNeedsToOwnToken) {
       return { status: 'Not Ready', reason: 'Initiator does not own the token specified in the swap, please start a new swap with the correct details', dotClass: 'not-ready' };
     }
-
     if (acceptorNeedsToOwnToken) {
       return { status: 'Not Ready', reason: 'Acceptor does not own the token specified in the swap, please start a new swap with the correct details', dotClass: 'not-ready' };
     }
-
     if (initiatorTokenRequiresApproval && acceptorTokenRequiresApproval) {
-      return { status: 'Not Ready', reason: 'both parties must approve their tokens', dotClass: 'not-ready' };
+      return { status: 'Not Ready', reason: 'Both parties must approve their tokens', dotClass: 'not-ready' };
     }
-
     if (initiatorTokenRequiresApproval) {
-      return { status: 'Partially Ready', reason: 'initiator must approve token', dotClass: 'partial' };
+      return { status: 'Partially Ready', reason: 'Initiator must approve token', dotClass: 'partial' };
     }
-
     if (acceptorTokenRequiresApproval) {
-      return { status: 'Partially Ready', reason: 'acceptor must approve token', dotClass: 'partial' };
+      return { status: 'Partially Ready', reason: 'Acceptor must approve token', dotClass: 'partial' };
     }
-
     if (isReadyForSwapping) {
       return { status: 'Ready', reason: '', dotClass: 'ready' };
     }
-
     return { status: 'Unknown', reason: '', dotClass: 'unknown' };
   } catch (error) {
     console.error('Error fetching swap status:', error);
     return { status: 'Unknown', reason: '', dotClass: 'unknown' };
   }
 };
+
+const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (
+  <Web3Button
+    className="button"
+    contractAddress={contractAddress}
+    action={action}
+    isDisabled={isDisabled}
+  >
+    {buttonText}
+  </Web3Button>
+);
 
 const renderSwapBox = (
   tx: any,
@@ -85,45 +90,22 @@ const renderSwapBox = (
   const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus;
   const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass;
 
-  const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (
-    <Web3Button
-      className="button"
-      contractAddress={contractAddress}
-      action={action}
-      isDisabled={isDisabled}
-    >
-      {buttonText}
-    </Web3Button>
-  );
-
   const renderActionButton = () => {
     const { swapStatus, swapReason, data: { swap: { initiator, acceptor, initiatorNeedsToOwnToken, acceptorNeedsToOwnToken } } } = tx;
-  
-    if (swapReason.includes('The initiator and acceptor do not own the tokens specified in the swap details') ||
-        swapReason.includes('Initiator does not own the token specified in the swap') ||
-        swapReason.includes('Acceptor does not own the token specified in the swap')) {
+
+    if (swapReason.includes('not own')) {
       if (initiator === address) {
-        return (
-          <>
-            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
-          </>
-        ); 
+        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
-      if (acceptor === address) {
-        return null;
-      }
+      return null;
     }
-  
+
     if (initiator === address) {
       if (initiatorNeedsToOwnToken) {
-        return (
-          <>
-            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
-          </>
-        );
+        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
-  
-      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'initiator must approve token')) {
+
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
         return (
           <>
             {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()]?.approveContractAddress || '')}
@@ -131,39 +113,31 @@ const renderSwapBox = (
           </>
         );
       }
-  
-      if (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token') {
-        return (
-          <>
-            {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
-          </>
-        );
+
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
+        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
-  
+
       if (swapStatus === 'Ready') {
         return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
     }
-  
+
     if (acceptor === address) {
       if (acceptorNeedsToOwnToken) {
         return null;
       }
-  
-      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'acceptor must approve token')) {
-        return (
-          <>
-            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()]?.approveContractAddress || '')}
-          </>
-        );
+
+      if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
+        return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', formState[tx.data.swapId.toString()]?.approveContractAddress || '');
       }
-  
+
       if (swapStatus === 'Ready') {
         return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
       }
     }
   };
-  
+
   const initiatorAddress = tx.data.swap.initiator === address ? 'You' : abbreviateAddress(tx.data.swap.initiator);
   const acceptorAddress = tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor);
 
@@ -179,7 +153,7 @@ const renderSwapBox = (
         <p>{initiatorAddress} ↔ {acceptorAddress}</p>
         <p>
           <span className={`status-dot ${dotClass}`}></span>
-          <em><strong> {swapStatus}
+          <em><strong>{swapStatus}
           {swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}
           {swapStatus === 'Not Ready' && <em>, {tx.swapReason}</em>}</strong></em>
         </p>
@@ -193,6 +167,7 @@ const renderSwapBox = (
   );
 };
 
+// Main Component
 const Swapper: NextPage = () => {
   const address = useAddress();
   const { contract: swapContract } = useContract(CONTRACT_ADDRESS);
@@ -211,8 +186,10 @@ const Swapper: NextPage = () => {
     if (swapContract && signer) {
       try {
         const events = await swapContract.events.getAllEvents();
+        const signerAddress = await signer.getAddress();
+
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
-        const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
+        const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete' && event.data.acceptor.toString() == signerAddress);
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
 
         const removedSwapIds = new Set(swapRemovedEvents.map(event => event.data.swapId.toString()));
@@ -231,9 +208,7 @@ const Swapper: NextPage = () => {
                 ...tx,
                 initiatorContractName,
                 acceptorContractName,
-                swapType: `${tokenTypeEnumToName(tx.data.swap.initiatorTokenType)} to ${tokenTypeEnumToName(
-                  tx.data.swap.acceptorTokenType
-                )}`,
+                swapType: `${tokenTypeEnumToName(tx.data.swap.initiatorTokenType)} to ${tokenTypeEnumToName(tx.data.swap.acceptorTokenType)}`,
               };
             })
           );
@@ -288,9 +263,12 @@ const Swapper: NextPage = () => {
   }, [swapContract, signer, address]);
 
   useEffect(() => {
+    if (address && swapContract && signer) {
+      fetchTransactions();
+    }
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
-  }, [fetchTransactions]);
+  }, [fetchTransactions, address, swapContract, signer]);
 
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
@@ -305,8 +283,6 @@ const Swapper: NextPage = () => {
 
   const handleSwap = async () => {
     const {
-      initiatorTokenId,
-      acceptorTokenId,
       acceptorAddress,
       initiatorTokenType,
       initiatorERCContract,
@@ -316,6 +292,8 @@ const Swapper: NextPage = () => {
       acceptorERCContract,
       acceptorTokenQuantity,
       acceptorETHPortion,
+      initiatorTokenId,
+      acceptorTokenId,
     } = formState;
 
     if (!address || !swapContract) {
@@ -323,7 +301,7 @@ const Swapper: NextPage = () => {
       return;
     }
 
-    if (!initiatorTokenId || !acceptorTokenId || !acceptorAddress) {
+    if (!acceptorAddress) {
       setFormState(prevState => ({ ...prevState, modalMessage: 'Please fill in all required fields.' }));
       return;
     }
@@ -358,8 +336,6 @@ const Swapper: NextPage = () => {
           }
         }));
         setFormState({
-          initiatorTokenId: '',
-          acceptorTokenId: '',
           acceptorAddress: '',
           initiatorTokenType: 'NONE',
           initiatorERCContract: '',
@@ -369,6 +345,8 @@ const Swapper: NextPage = () => {
           acceptorERCContract: '',
           acceptorTokenQuantity: '',
           acceptorETHPortion: '',
+          initiatorTokenId: '',
+          acceptorTokenId: '',
           modalMessage: `Swap successfully initiated! Your Swap ID is ${parseInt(swapIdHex, 16)}`,
         });
         setCurrentPage('swapList');
@@ -507,135 +485,253 @@ const Swapper: NextPage = () => {
         </header>
         <div className="main-content">
           {currentPage === 'initSwap' && (
-            <section id="initSwap" className="guide-grid">
-              <div>
-                <h3>How To Initiate The Swap</h3>
-                <p>As the initiator, provide the following information:</p>
-                <ul>
-                  <li>Initiator's Token ID</li>
-                  <li>Acceptor's Token ID</li>
-                  <li>Acceptor's Wallet Address</li>
-                  <li>Initiator's Token Type (ERC20, ERC721, ERC1155)</li>
-                  <ul>
-                    <li>Initiator's Token Contract Address</li>
-                    <li>Initiator's Token Quantity</li>
-                    <li>Initiator's ETH Portion (optional)</li>
-                  </ul>
-                  <li>Acceptor's Token Type</li>
-                  <ul>
-                    <li>Acceptor's Token Contract Address</li>
-                    <li>Acceptor's Token Quantity</li>
-                    <li>Acceptor's ETH Portion (optional)</li>
-                  </ul>
-                </ul>
-              </div>
+            <section id="initSwap" style={{ textAlign: 'center', marginBottom: '1em' }}>
               <div>
                 {!address && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Connect Your Wallet</h3>
-                    <ConnectWallet />
+                    <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
                   </div>
                 )}
                 {address && (
-                  <div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                      <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Enter Swap Information</h3>
-                      <input
-                        type="text"
-                        name="initiatorTokenId"
-                        placeholder="Your Token ID"
-                        value={formState.initiatorTokenId || ''}
-                        onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
-                      />
-                      <input
-                        type="text"
-                        name="acceptorTokenId"
-                        placeholder="Acceptor's Token ID"
-                        value={formState.acceptorTokenId || ''}
-                        onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
-                      />
-                      <input
-                        type="text"
-                        name="acceptorAddress"
-                        placeholder="Acceptor's Wallet Address"
-                        value={formState.acceptorAddress || ''}
-                        onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
-                      />
-                      <select name="initiatorTokenType" value={formState.initiatorTokenType || 'NONE'} onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}>
-                        <option value="NONE">None</option>
-                        <option value="ERC20">ERC20</option>
-                        <option value="ERC777">ERC777</option>
-                        <option value="ERC721">ERC721</option>
-                        <option value="ERC1155">ERC1155</option>
-                      </select>
-                      {formState.initiatorTokenType !== 'NONE' && (
-                        <>
+                  <div>   
+                    <h3>Enter Swap Information</h3>
+                    <p>As the initiator, provide the following information:</p>
+                    <div className="guide-grid">
+                      <div>
+                        <h4>Initiator Information:</h4>
+                        <div className="form-group">
+                          <label htmlFor="initiatorTokenType">Initiator's Token Type:</label>
+                          <select
+                            name="initiatorTokenType"
+                            value={formState.initiatorTokenType || 'NONE'}
+                            onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}
+                          >
+                            <option value="NONE">None</option>
+                            <option value="ERC20">ERC20</option>
+                            <option value="ERC777">ERC777</option>
+                            <option value="ERC721">ERC721</option>
+                            <option value="ERC1155">ERC1155</option>
+                          </select>
+                        </div>
+                        {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="initiatorERCContract"
+                                placeholder="Initiator's Token Contract Address"
+                                value={formState.initiatorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="initiatorTokenQuantity">Initiator's Token Quantity:</label>
+                              <input
+                                type="text"
+                                name="initiatorTokenQuantity"
+                                placeholder="Initiator's Token Quantity"
+                                value={formState.initiatorTokenQuantity || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : formState.initiatorTokenType === 'ERC721' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="initiatorERCContract"
+                                placeholder="Initiator's Token Contract Address"
+                                value={formState.initiatorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="initiatorTokenId">Initiator's Token ID:</label>
+                              <input
+                                type="text"
+                                name="initiatorTokenId"
+                                placeholder="Initiator's Token ID"
+                                value={formState.initiatorTokenId || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : formState.initiatorTokenType === 'ERC1155' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="initiatorERCContract"
+                                placeholder="Initiator's Token Contract Address"
+                                value={formState.initiatorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="initiatorTokenId">Initiator's Token ID:</label>
+                              <input
+                                type="text"
+                                name="initiatorTokenId"
+                                placeholder="Initiator's Token ID"
+                                value={formState.initiatorTokenId || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="initiatorTokenQuantity">Initiator's Token Quantity:</label>
+                              <input
+                                type="text"
+                                name="initiatorTokenQuantity"
+                                placeholder="Initiator's Token Quantity"
+                                value={formState.initiatorTokenQuantity || ''}
+                                onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                        <div className="form-group">
+                          <label htmlFor="initiatorETHPortion">Initiator's ETH Portion:</label>
                           <input
                             type="text"
-                            name="initiatorERCContract"
-                            placeholder="Initiator's Token Contract Address"
-                            value={formState.initiatorERCContract || ''}
-                            onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
+                            name="initiatorETHPortion"
+                            placeholder="Initiator's ETH Portion"
+                            value={formState.initiatorETHPortion || ''}
+                            onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
                           />
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Acceptor Information:</h4>
+                        <div className="form-group">
+                          <label htmlFor="acceptorAddress">Acceptor's Wallet Address:</label>
                           <input
                             type="text"
-                            name="initiatorTokenQuantity"
-                            placeholder="Initiator's Token Quantity"
-                            value={formState.initiatorTokenQuantity || ''}
-                            onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
+                            name="acceptorAddress"
+                            placeholder="Acceptor's Wallet Address"
+                            value={formState.acceptorAddress || ''}
+                            onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                           />
-                        </>
-                      )}
-                      <input
-                        type="text"
-                        name="initiatorETHPortion"
-                        placeholder="Initiator's ETH Portion"
-                        value={formState.initiatorETHPortion || ''}
-                        onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
-                      />
-                      <select name="acceptorTokenType" value={formState.acceptorTokenType || 'NONE'} onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}>
-                        <option value="NONE">None</option>
-                        <option value="ERC20">ERC20</option>
-                        <option value="ERC777">ERC777</option>
-                        <option value="ERC721">ERC721</option>
-                        <option value="ERC1155">ERC1155</option>
-                      </select>
-                      {formState.acceptorTokenType !== 'NONE' && (
-                        <>
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="acceptorTokenType">Acceptor's Token Type:</label>
+                          <select
+                            name="acceptorTokenType"
+                            value={formState.acceptorTokenType || 'NONE'}
+                            onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}
+                          >
+                            <option value="NONE">None</option>
+                            <option value="ERC20">ERC20</option>
+                            <option value="ERC777">ERC777</option>
+                            <option value="ERC721">ERC721</option>
+                            <option value="ERC1155">ERC1155</option>
+                          </select>
+                        </div>
+                        {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="acceptorERCContract"
+                                placeholder="Acceptor's Token Contract Address"
+                                value={formState.acceptorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="acceptorTokenQuantity">Acceptor's Token Quantity:</label>
+                              <input
+                                type="text"
+                                name="acceptorTokenQuantity"
+                                placeholder="Acceptor's Token Quantity"
+                                value={formState.acceptorTokenQuantity || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : formState.acceptorTokenType === 'ERC721' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="acceptorERCContract"
+                                placeholder="Acceptor's Token Contract Address"
+                                value={formState.acceptorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="acceptorTokenId">Acceptor's Token ID:</label>
+                              <input
+                                type="text"
+                                name="acceptorTokenId"
+                                placeholder="Acceptor's Token ID"
+                                value={formState.acceptorTokenId || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : formState.acceptorTokenType === 'ERC1155' ? (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <input
+                                type="text"
+                                name="acceptorERCContract"
+                                placeholder="Acceptor's Token Contract Address"
+                                value={formState.acceptorERCContract || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="acceptorTokenId">Acceptor's Token ID:</label>
+                              <input
+                                type="text"
+                                name="acceptorTokenId"
+                                placeholder="Acceptor's Token ID"
+                                value={formState.acceptorTokenId || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label htmlFor="acceptorTokenQuantity">Acceptor's Token Quantity:</label>
+                              <input
+                                type="text"
+                                name="acceptorTokenQuantity"
+                                placeholder="Acceptor's Token Quantity"
+                                value={formState.acceptorTokenQuantity || ''}
+                                onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                        <div className="form-group">
+                          <label htmlFor="acceptorETHPortion">Acceptor's ETH Portion:</label>
                           <input
                             type="text"
-                            name="acceptorERCContract"
-                            placeholder="Acceptor's Token Contract Address"
-                            value={formState.acceptorERCContract || ''}
-                            onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
+                            name="acceptorETHPortion"
+                            placeholder="Acceptor's ETH Portion"
+                            value={formState.acceptorETHPortion || ''}
+                            onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
                           />
-                          <input
-                            type="text"
-                            name="acceptorTokenQuantity"
-                            placeholder="Acceptor's Token Quantity"
-                            value={formState.acceptorTokenQuantity || ''}
-                            onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
-                          />
-                        </>
-                      )}
-                      <input
-                        type="text"
-                        name="acceptorETHPortion"
-                        placeholder="Acceptor's ETH Portion"
-                        value={formState.acceptorETHPortion || ''}
-                        onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
-                      />
-                      <Web3Button
-                        className="button"
-                        contractAddress={CONTRACT_ADDRESS}
-                        action={handleSwap}
-                        isDisabled={!address}
-                      >
-                        Initiate Swap
-                      </Web3Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
+                <Web3Button
+                  className="button"
+                  contractAddress={CONTRACT_ADDRESS}
+                  action={handleSwap}
+                  isDisabled={!address}
+                >
+                  Initiate Swap
+                </Web3Button>
               </div>
             </section>
           )}
