@@ -1,6 +1,5 @@
-import { AppProps } from 'next/app';
+import type { AppProps } from "next/app";
 import { ThirdwebProvider } from '@thirdweb-dev/react';
-import { clientKey } from '../const/addresses';
 import '../styles/globals.css';
 import Head from "next/head";
 
@@ -8,7 +7,10 @@ const activeChain = 'sepolia';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <ThirdwebProvider clientId={clientKey} activeChain={activeChain}>
+    <ThirdwebProvider
+      clientId={process.env.NEXT_PUBLIC_TEMPLATE_CLIENT_ID}
+      activeChain={activeChain}
+    >
       <Head>
         <title>Token Swapper</title>
       </Head>
