@@ -186,10 +186,8 @@ const Swapper: NextPage = () => {
     if (swapContract && signer) {
       try {
         const events = await swapContract.events.getAllEvents();
-        const signerAddress = await signer.getAddress();
-
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
-        const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete' && event.data.acceptor.toString() == signerAddress);
+        const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
 
         const removedSwapIds = new Set(swapRemovedEvents.map(event => event.data.swapId.toString()));
@@ -263,12 +261,9 @@ const Swapper: NextPage = () => {
   }, [swapContract, signer, address]);
 
   useEffect(() => {
-    if (address && swapContract && signer) {
-      fetchTransactions();
-    }
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
-  }, [fetchTransactions, address, swapContract, signer]);
+  }, [fetchTransactions]);
 
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
@@ -500,7 +495,7 @@ const Swapper: NextPage = () => {
                       <div>
                         <h4>Initiator Information:</h4>
                         <div className="form-group">
-                          <label htmlFor="initiatorTokenType">Initiator's Token Type:</label>
+                          <label htmlFor="initiatorTokenType">Initiator&apos;s Token Type:</label>
                           <select
                             name="initiatorTokenType"
                             value={formState.initiatorTokenType || 'NONE'}
@@ -516,21 +511,21 @@ const Swapper: NextPage = () => {
                         {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="initiatorERCContract"
-                                placeholder="Initiator's Token Contract Address"
+                                placeholder="Initiator&apos;s Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="initiatorTokenQuantity">Initiator's Token Quantity:</label>
+                              <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
                               <input
                                 type="text"
                                 name="initiatorTokenQuantity"
-                                placeholder="Initiator's Token Quantity"
+                                placeholder="Initiator&apos;s Token Quantity"
                                 value={formState.initiatorTokenQuantity || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
                               />
@@ -539,21 +534,21 @@ const Swapper: NextPage = () => {
                         ) : formState.initiatorTokenType === 'ERC721' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="initiatorERCContract"
-                                placeholder="Initiator's Token Contract Address"
+                                placeholder="Initiator&apos;s Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="initiatorTokenId">Initiator's Token ID:</label>
+                              <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
                               <input
                                 type="text"
                                 name="initiatorTokenId"
-                                placeholder="Initiator's Token ID"
+                                placeholder="Initiator&apos;s Token ID"
                                 value={formState.initiatorTokenId || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                               />
@@ -562,31 +557,31 @@ const Swapper: NextPage = () => {
                         ) : formState.initiatorTokenType === 'ERC1155' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator's Token Contract Address:</label>
+                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="initiatorERCContract"
-                                placeholder="Initiator's Token Contract Address"
+                                placeholder="Initiator&apos;s Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="initiatorTokenId">Initiator's Token ID:</label>
+                              <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
                               <input
                                 type="text"
                                 name="initiatorTokenId"
-                                placeholder="Initiator's Token ID"
+                                placeholder="Initiator&apos;s Token ID"
                                 value={formState.initiatorTokenId || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="initiatorTokenQuantity">Initiator's Token Quantity:</label>
+                              <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
                               <input
                                 type="text"
                                 name="initiatorTokenQuantity"
-                                placeholder="Initiator's Token Quantity"
+                                placeholder="Initiator&apos;s Token Quantity"
                                 value={formState.initiatorTokenQuantity || ''}
                                 onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
                               />
@@ -594,11 +589,11 @@ const Swapper: NextPage = () => {
                           </>
                         ) : null}
                         <div className="form-group">
-                          <label htmlFor="initiatorETHPortion">Initiator's ETH Portion:</label>
+                          <label htmlFor="initiatorETHPortion">Initiator&apos;s ETH Portion:</label>
                           <input
                             type="text"
                             name="initiatorETHPortion"
-                            placeholder="Initiator's ETH Portion"
+                            placeholder="Initiator&apos;s ETH Portion"
                             value={formState.initiatorETHPortion || ''}
                             onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
                           />
@@ -607,17 +602,17 @@ const Swapper: NextPage = () => {
                       <div>
                         <h4>Acceptor Information:</h4>
                         <div className="form-group">
-                          <label htmlFor="acceptorAddress">Acceptor's Wallet Address:</label>
+                          <label htmlFor="acceptorAddress">Acceptor&apos;s Wallet Address:</label>
                           <input
                             type="text"
                             name="acceptorAddress"
-                            placeholder="Acceptor's Wallet Address"
+                            placeholder="Acceptor&apos;s Wallet Address"
                             value={formState.acceptorAddress || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                           />
                         </div>
                         <div className="form-group">
-                          <label htmlFor="acceptorTokenType">Acceptor's Token Type:</label>
+                          <label htmlFor="acceptorTokenType">Acceptor&apos;s Token Type:</label>
                           <select
                             name="acceptorTokenType"
                             value={formState.acceptorTokenType || 'NONE'}
@@ -633,21 +628,21 @@ const Swapper: NextPage = () => {
                         {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="acceptorERCContract"
-                                placeholder="Acceptor's Token Contract Address"
+                                placeholder="Acceptor&apos;s Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="acceptorTokenQuantity">Acceptor's Token Quantity:</label>
+                              <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
                               <input
                                 type="text"
                                 name="acceptorTokenQuantity"
-                                placeholder="Acceptor's Token Quantity"
+                                placeholder="Acceptor&apos;s Token Quantity"
                                 value={formState.acceptorTokenQuantity || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
                               />
@@ -656,21 +651,21 @@ const Swapper: NextPage = () => {
                         ) : formState.acceptorTokenType === 'ERC721' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="acceptorERCContract"
-                                placeholder="Acceptor's Token Contract Address"
+                                placeholder="Acceptor&apos;s Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="acceptorTokenId">Acceptor's Token ID:</label>
+                              <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
                               <input
                                 type="text"
                                 name="acceptorTokenId"
-                                placeholder="Acceptor's Token ID"
+                                placeholder="Acceptor&apos;s Token ID"
                                 value={formState.acceptorTokenId || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                               />
@@ -679,31 +674,31 @@ const Swapper: NextPage = () => {
                         ) : formState.acceptorTokenType === 'ERC1155' ? (
                           <>
                             <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor's Token Contract Address:</label>
+                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="acceptorERCContract"
-                                placeholder="Acceptor's Token Contract Address"
+                                placeholder="Acceptor&apos;s Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="acceptorTokenId">Acceptor's Token ID:</label>
+                              <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
                               <input
                                 type="text"
                                 name="acceptorTokenId"
-                                placeholder="Acceptor's Token ID"
+                                placeholder="Acceptor&apos;s Token ID"
                                 value={formState.acceptorTokenId || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="acceptorTokenQuantity">Acceptor's Token Quantity:</label>
+                              <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
                               <input
                                 type="text"
                                 name="acceptorTokenQuantity"
-                                placeholder="Acceptor's Token Quantity"
+                                placeholder="Acceptor&apos;s Token Quantity"
                                 value={formState.acceptorTokenQuantity || ''}
                                 onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
                               />
@@ -711,11 +706,11 @@ const Swapper: NextPage = () => {
                           </>
                         ) : null}
                         <div className="form-group">
-                          <label htmlFor="acceptorETHPortion">Acceptor's ETH Portion:</label>
+                          <label htmlFor="acceptorETHPortion">Acceptor&apos;s ETH Portion:</label>
                           <input
                             type="text"
                             name="acceptorETHPortion"
-                            placeholder="Acceptor's ETH Portion"
+                            placeholder="Acceptor&apos;s ETH Portion"
                             value={formState.acceptorETHPortion || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
                           />
@@ -809,8 +804,8 @@ const Swapper: NextPage = () => {
           <div style={{ textAlign: 'left' }}>
             <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
             <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
-            <p><strong>Initiators Contract Address:</strong> {modalData.initiatorERCContract}</p>
-            <p><strong>Acceptors Contract Address:</strong> {modalData.acceptorERCContract}</p>
+            <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorERCContract}</p>
+            <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorERCContract}</p>
             <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenId}</p>
             <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenId}</p>
             <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenQuantity}</p>
