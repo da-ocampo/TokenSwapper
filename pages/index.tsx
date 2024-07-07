@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { useAddress, useContract, useDisconnect } from '@thirdweb-dev/react';
+import { useAddress, useContract, useDisconnect, useMetamask } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
 import { CONTRACT_ADDRESS } from '../const/addresses';
 import Modal from './components/Modal';
@@ -12,6 +12,7 @@ const Home: NextPage = () => {
 
   const address = useAddress();
   const disconnect = useDisconnect();
+  const connectWithMetamask = useMetamask();
   const { contract, isLoading, error } = useContract(CONTRACT_ADDRESS);
   const [walletConnected, setWalletConnected] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -42,7 +43,8 @@ const Home: NextPage = () => {
       } else {
         const newAddress = accounts[0];
         if (newAddress !== address) {
-          setWalletConnected(true);
+          disconnect();
+          connectWithMetamask();
         }
       }
     };
@@ -56,7 +58,7 @@ const Home: NextPage = () => {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       }
     };
-  }, [address, disconnect]);
+  }, [address, disconnect, connectWithMetamask]);
 
   const closeModal = () => setSuccessMessage(null);
 

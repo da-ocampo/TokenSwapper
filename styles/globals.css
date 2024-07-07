@@ -336,6 +336,7 @@ input[type="text"]:focus, select:focus {
 }
 
 /* Responsive Styles */
+/* Responsive Styles */
 @media only screen and (max-width: 1024px) {
   .guide-grid {
     grid-template-columns: 1fr;
@@ -370,6 +371,11 @@ input[type="text"]:focus, select:focus {
 
   .navbar {
     flex-direction: column;
+    align-items: center;
+  }
+
+  .navList {
+    flex-direction: column; /* Change to column on small screens */
     align-items: center;
   }
 

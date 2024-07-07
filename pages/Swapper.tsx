@@ -266,6 +266,12 @@ const Swapper: NextPage = () => {
     return () => clearInterval(interval);
   }, [fetchTransactions]);
 
+  useEffect(() => {
+    if (address) {
+      fetchTransactions();
+    }
+  }, [address, fetchTransactions]);
+
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
   const parseSwapData = (data: any[]): any[] =>
