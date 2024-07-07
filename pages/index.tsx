@@ -20,7 +20,6 @@ const Home: NextPage = () => {
     const checkStatus = async () => {
       if (!address || !contract) {
         setWalletConnected(false);
-        localStorage.removeItem('walletConnected');
         return;
       }
       try {
@@ -37,7 +36,7 @@ const Home: NextPage = () => {
   }, [address, contract, isLoading, error]);
 
   useEffect(() => {
-    const handleAccountsChanged = async (accounts: string[]) => {
+    const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
         disconnect();
       } else {
