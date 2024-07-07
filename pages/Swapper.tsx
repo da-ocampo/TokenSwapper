@@ -740,14 +740,15 @@ const Swapper: NextPage = () => {
           )}
           {currentPage === 'swapList' && (
             <section id="swapList">
-              <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Swaps List</h3>
               {!address && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                  <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
                   <ConnectWallet />
                 </div>
               )}
               {address && (
                 <div>
+                  <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Swaps List</h3>
                   <div className="toggleButtons">
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
