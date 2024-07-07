@@ -183,9 +183,10 @@ const Swapper: NextPage = () => {
   const [modalData, setModalData] = useState<any>(null);
 
   const fetchTransactions = useCallback(async () => {
-    if (swapContract && signer) {
+    if (swapContract && signer && address) {
       try {
         const events = await swapContract.events.getAllEvents();
+        
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
         const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
@@ -217,9 +218,9 @@ const Swapper: NextPage = () => {
         const toAcceptTransactionsWithNames = await fetchNames(
           filteredInitiatedEvents.filter(event => event.data.swap.acceptor === address)
         );
-        const completedTransactionsWithNames = await fetchNames(swapCompletedEvents);
+        const completedTransactionsWithNames = await fetchNames(swapCompletedEvents.filter(event => event.data.swap.initiator === address || event.data.swap.acceptor === address));
         const removedTransactionsWithNames = await fetchNames(
-          swapInitiatedEvents.filter(event => removedSwapIds.has(event.data.swapId.toString()) && event.data.swap.initiator === address)
+          swapInitiatedEvents.filter(event => removedSwapIds.has(event.data.swapId.toString()) && (event.data.swap.initiator === address || event.data.swap.acceptor === address))
         );
 
         for (const tx of initiatedTransactionsWithNames) {
@@ -485,6 +486,7 @@ const Swapper: NextPage = () => {
                 {!address && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
                     <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
+                    <ConnectWallet />
                   </div>
                 )}
                 {address && (
