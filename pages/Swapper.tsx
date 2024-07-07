@@ -725,16 +725,16 @@ const Swapper: NextPage = () => {
                         </div>
                       </div>
                     </div>
+                    <Web3Button
+                      className="button"
+                      contractAddress={CONTRACT_ADDRESS}
+                      action={handleSwap}
+                      isDisabled={!address}
+                    >
+                      Initiate Swap
+                    </Web3Button>
                   </div>
                 )}
-                <Web3Button
-                  className="button"
-                  contractAddress={CONTRACT_ADDRESS}
-                  action={handleSwap}
-                  isDisabled={!address}
-                >
-                  Initiate Swap
-                </Web3Button>
               </div>
             </section>
           )}
