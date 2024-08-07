@@ -102,6 +102,15 @@ h4 {
   transition: margin-top 0.3s;
 }
 
+.actual-value-box {
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin-top: 5px;
+  font-style: italic;
+  background-color: #f9f9f9;
+}
+
+
 .form-group {
   display: flex;
   text-align: left;
