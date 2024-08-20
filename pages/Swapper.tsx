@@ -30,13 +30,12 @@ const fetchContractName = async (contractAddress: string, signer: any) => {
   }
 };
 
-const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any, userAddress: string) => {
+const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
     const { initiatorTokenRequiresApproval, acceptorTokenRequiresApproval, isReadyForSwapping, initiatorNeedsToOwnToken, acceptorNeedsToOwnToken } = swapStatus;
 
-    // If it's an open swap and the current user is the initiator
-    if (swapData.acceptor === '0x0000000000000000000000000000000000000000' && swapData.initiator === userAddress) {
+    if (swapData.acceptor === '0x0000000000000000000000000000000000000000') {
       if (initiatorNeedsToOwnToken) {
         return { status: 'Not Ready', reason: 'Initiator does not own the token specified in the swap', dotClass: 'not-ready' };
       }
@@ -44,14 +43,6 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any,
         return { status: 'Not Ready', reason: 'Initiator must approve token', dotClass: 'not-ready' };
       }
       return { status: 'Ready', reason: 'Waiting for acceptor', dotClass: 'ready' };
-    }
-
-    // If it's an open swap and the current user is a potential acceptor
-    if (swapData.acceptor === '0x0000000000000000000000000000000000000000' && swapData.initiator !== userAddress) {
-      if (acceptorTokenRequiresApproval) {
-        return { status: 'Ready', reason: 'Waiting for acceptor', dotClass: 'ready' };
-      }
-      return { status: 'Ready', reason: '', dotClass: 'ready' };
     }
 
     if (initiatorNeedsToOwnToken && acceptorNeedsToOwnToken) {
@@ -85,16 +76,13 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any,
 const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
-    const { initiatorNeedsToOwnToken, initiatorTokenRequiresApproval, acceptorTokenRequiresApproval } = swapStatus;
+    const { initiatorNeedsToOwnToken, initiatorTokenRequiresApproval } = swapStatus;
 
     if (initiatorNeedsToOwnToken) {
       return { status: 'Not Ready', reason: 'Initiator does not own the token specified in the swap', dotClass: 'not-ready' };
     }
     if (initiatorTokenRequiresApproval) {
       return { status: 'Not Ready', reason: 'Initiator must approve token', dotClass: 'not-ready' };
-    }
-    if (acceptorTokenRequiresApproval) {
-      return { status: 'Partially Ready', reason: 'Acceptor must approve token', dotClass: 'partial' };
     }
     return { status: 'Ready', reason: '', dotClass: 'ready' };
   } catch (error) {
@@ -145,44 +133,36 @@ const renderSwapBox = (
 
   const renderActionButton = () => {
     const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
-
+  
     if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
       if (initiator === address) {
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
-          return (
-            <>
-              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
-              {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
-            </>
-          );
+        if (swapStatus === 'Not Ready' && swapReason === 'Initiator must approve token') {
+          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract);
         }
-
+  
         if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-
+  
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-
+  
         return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
-
+  
       if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
         return null;
       }
-
-      if (acceptor === '0x0000000000000000000000000000000000000000') {
-          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
-            return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
-          }
   
-          if (swapStatus === 'Ready') {
-            return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
-          } 
+      if (acceptor === '0x0000000000000000000000000000000000000000') {
+        return (
+          <>
+            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract)}
+            {swapStatus === 'Ready' && renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS)}
+          </>
+        );
       }
-
-      
     } else {
       if (swapReason.includes('not own')) {
         if (initiator === address) {
@@ -190,7 +170,7 @@ const renderSwapBox = (
         }
         return null;
       }
-
+  
       if (initiator === address) {
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
           return (
@@ -200,21 +180,21 @@ const renderSwapBox = (
             </>
           );
         }
-
+  
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-
+  
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
       }
-
+  
       if (acceptor === address) {
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
           return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
         }
-
+  
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
         }
@@ -355,7 +335,7 @@ const Swapper: NextPage = () => {
         );
 
         for (const tx of initiatedTransactionsWithNames) {
-          const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap, address);
+          const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap);
           tx.swapStatus = status.status;
           tx.swapReason = status.reason;
           tx.dotClass = status.dotClass;
@@ -368,7 +348,7 @@ const Swapper: NextPage = () => {
           }));
         }
         for (const tx of toAcceptTransactionsWithNames) {
-          const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap, address);
+          const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap);
           tx.swapStatus = status.status;
           tx.swapReason = status.reason;
           tx.dotClass = status.dotClass;
