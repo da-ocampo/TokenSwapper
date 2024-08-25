@@ -246,47 +246,57 @@ const Swapper: NextPage = () => {
   const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList'>('swapList');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
-  const [tokenDecimals, setTokenDecimals] = useState<number>(0);
-  const [calculatedValue, setCalculatedValue] = useState<string>('');
+  const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
+  const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
 
-  const fetchTokenDecimals = useCallback(async (contractAddress: string) => {
-    if (signer) {
-      try {
-        const contract = new ethers.Contract(contractAddress, ['function decimals() view returns (uint8)'], signer);
-        const decimals = await contract.decimals();
-        setTokenDecimals(decimals);
-
-        if (formState.initiatorTokenQuantity) {
-          const value = ethers.utils.formatUnits(formState.initiatorTokenQuantity, decimals);
-          setCalculatedValue(value);
-        } else {
-          setCalculatedValue('');
+  const fetchTokenDecimals = useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
+    const tokenType = formState[`${side}TokenType`];
+    
+    if (tokenType === 'ERC20' || tokenType === 'ERC777') {
+      if (signer) {
+        try {
+          const contract = new ethers.Contract(contractAddress, ['function decimals() view returns (uint8)'], signer);
+          const decimals = await contract.decimals();
+          setTokenDecimals(prevDecimals => ({ ...prevDecimals, [side]: decimals }));
+  
+          const quantity = formState[`${side}TokenQuantity`];
+          if (quantity) {
+            const value = ethers.utils.formatUnits(quantity, decimals);
+            setCalculatedValue(prevValues => ({ ...prevValues, [side]: value }));
+          } else {
+            setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
+          }
+        } catch (error) {
+          console.error('Error fetching token decimals:', error);
         }
-      } catch (error) {
-        console.error('Error fetching token decimals:', error);
       }
+    } else {
+      setTokenDecimals(prevDecimals => ({ ...prevDecimals, [side]: 0 }));
+      setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
-  }, [formState.initiatorTokenQuantity, signer]);
-
-  const handleInitiatorERCContractChange = async (value: string) => {
-    setFormState(prevState => ({ ...prevState, initiatorERCContract: value }));
+  }, [formState, signer]);
+  
+  const handleERCContractChange = async (value: string, side: 'initiator' | 'acceptor') => {
+    setFormState(prevState => ({ ...prevState, [`${side}ERCContract`]: value }));
     if (value) {
-      await fetchTokenDecimals(value);
+      await fetchTokenDecimals(value, side);
     } else {
-      setTokenDecimals(0);
-      setCalculatedValue('');
+      setTokenDecimals(prevDecimals => ({ ...prevDecimals, [side]: 0 }));
+      setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
   };
-
-  const handleInitiatorTokenQuantityChange = (value: string) => {
-    setFormState(prevState => ({ ...prevState, initiatorTokenQuantity: value }));
-    if (value && tokenDecimals > 0) {
-      const calculated = ethers.utils.formatUnits(value, tokenDecimals);
-      setCalculatedValue(calculated);
+  
+  const handleTokenQuantityChange = (value: string, side: 'initiator' | 'acceptor') => {
+    setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
+    const decimals = tokenDecimals[side];
+    if (value && decimals > 0) {
+      const calculated = ethers.utils.formatUnits(value, decimals);
+      setCalculatedValue(prevValues => ({ ...prevValues, [side]: calculated }));
     } else {
-      setCalculatedValue('');
+      setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
   };
+  
 
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer && address) {
@@ -398,8 +408,9 @@ const Swapper: NextPage = () => {
   }, [address, fetchTransactions]);
 
   useEffect(() => {
-    if (formState.initiatorERCContract) fetchTokenDecimals(formState.initiatorERCContract);
-  }, [formState.initiatorERCContract, fetchTokenDecimals]);
+    if (formState.initiatorERCContract) fetchTokenDecimals(formState.initiatorERCContract, 'initiator');
+    if (formState.acceptorERCContract) fetchTokenDecimals(formState.acceptorERCContract, 'acceptor');
+  }, [formState.initiatorERCContract, formState.acceptorERCContract, fetchTokenDecimals]);
 
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
@@ -651,7 +662,7 @@ const Swapper: NextPage = () => {
                                 name="initiatorERCContract"
                                 placeholder="Initiator&apos;s Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
-                                onChange={(e) => handleInitiatorERCContractChange(e.target.value)}
+                                onChange={(e) => handleERCContractChange(e.target.value, 'initiator')}
                               />
                             </div>
                             <div className="form-group">
@@ -661,12 +672,12 @@ const Swapper: NextPage = () => {
                                 name="initiatorTokenQuantity"
                                 placeholder="Initiator&apos;s Token Quantity"
                                 value={formState.initiatorTokenQuantity || ''}
-                                onChange={(e) => handleInitiatorTokenQuantityChange(e.target.value)}
+                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
                               />
                             </div>
                             <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                              <p><em>Token Decimals: {tokenDecimals}</em></p>
-                              <p><em>Actual Token Value: {calculatedValue || 'N/A'}</em></p>
+                              <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
+                              <p><em>Actual Token Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
                             </div>
                           </>
                         ) : formState.initiatorTokenType === 'ERC721' ? (
@@ -721,7 +732,7 @@ const Swapper: NextPage = () => {
                                 name="initiatorTokenQuantity"
                                 placeholder="Initiator&apos;s Token Quantity"
                                 value={formState.initiatorTokenQuantity || ''}
-                                onChange={(e) => setFormState({ ...formState, initiatorTokenQuantity: e.target.value })}
+                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
                               />
                             </div>
                           </>
@@ -772,10 +783,7 @@ const Swapper: NextPage = () => {
                                 name="acceptorERCContract"
                                 placeholder="Acceptor&apos;s Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
-                                onChange={(e) => {
-                                  setFormState({ ...formState, acceptorERCContract: e.target.value });
-                                  fetchTokenDecimals(e.target.value);
-                                }}
+                                onChange={(e) => handleERCContractChange(e.target.value, 'acceptor')}
                               />
                             </div>
                             <div className="form-group">
@@ -785,12 +793,12 @@ const Swapper: NextPage = () => {
                                 name="acceptorTokenQuantity"
                                 placeholder="Acceptor&apos;s Token Quantity"
                                 value={formState.acceptorTokenQuantity || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
+                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
                               />
                             </div>
                             <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                              <p><em>Token Decimals: {tokenDecimals}</em></p>
-                              <p><em>Actual Token Value: {calculatedValue || 'N/A'}</em></p>
+                              <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
+                              <p><em>Actual Token Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
                             </div>
                           </>
                         ) : formState.acceptorTokenType === 'ERC721' ? (
@@ -845,7 +853,7 @@ const Swapper: NextPage = () => {
                                 name="acceptorTokenQuantity"
                                 placeholder="Acceptor&apos;s Token Quantity"
                                 value={formState.acceptorTokenQuantity || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorTokenQuantity: e.target.value })}
+                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
                               />
                             </div>
                           </>
@@ -875,83 +883,83 @@ const Swapper: NextPage = () => {
               </div>
             </section>
           )}
-          {currentPage === 'swapList' && (
-            <section id="swapList">
-              {!address && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                  <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
-                  <ConnectWallet />
-                </div>
-              )}
-              {address && (
-                <div>
-                  <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Swaps List</h3>
-                  <div className="toggleButtons">
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('initiated')}
-                    >
-                      Initiated Swaps
-                    </button>
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('toAccept')}
-                    >
-                      To Accept Swaps
-                    </button>
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'open' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('open')}
-                    >
-                      Open Swaps
-                    </button>
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('completed')}
-                    >
-                      Completed Swaps
-                    </button>
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('removed')}
-                    >
-                      Removed Swaps
-                    </button>
-                  </div>
-                  <div className="swapContainer">
-                    {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
-                      <div>
-                        <p style={{textAlign: 'center', marginBottom:'1em'}}>No transactions found.</p>
-                        <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
-                      </div>
-                    ) : (
-                      initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                    ))}
-                    {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
-                      <p>No transactions found.</p>
-                    ) : (
-                      toAcceptTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                    ))}
-                    {showInitiatedSwaps === 'open' && (openTransactions.length === 0 ? (
-                      <p>No transactions found.</p>
-                    ) : (
-                      openTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                    ))}
-                    {showInitiatedSwaps === 'completed' && (completedTransactions.length === 0 ? (
-                      <p>No transactions found.</p>
-                    ) : (
-                      completedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, true, false, handleViewDetails))
-                    ))}
-                    {showInitiatedSwaps === 'removed' && (removedTransactions.length === 0 ? (
-                      <p>No transactions found.</p>
-                    ) : (
-                      removedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, true, handleViewDetails))
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+{currentPage === 'swapList' && (
+  <section id="swapList">
+    {!address && (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
+        <ConnectWallet />
+      </div>
+    )}
+    {address && (
+      <div className="swapGrid">
+        <div className="toggleButtons">
+          <button
+            className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
+            onClick={() => setShowInitiatedSwaps('initiated')}
+          >
+            Initiated Swaps
+          </button>
+          <button
+            className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
+            onClick={() => setShowInitiatedSwaps('toAccept')}
+          >
+            To Accept Swaps
+          </button>
+          <button
+            className={`toggle-button ${showInitiatedSwaps === 'open' ? 'active' : ''}`}
+            onClick={() => setShowInitiatedSwaps('open')}
+          >
+            Open Swaps
+          </button>
+          <button
+            className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
+            onClick={() => setShowInitiatedSwaps('completed')}
+          >
+            Completed Swaps
+          </button>
+          <button
+            className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
+            onClick={() => setShowInitiatedSwaps('removed')}
+          >
+            Removed Swaps
+          </button>
+        </div>
+        <div className="swapContainer">
+          {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
+            <div>
+              <p style={{textAlign: 'center', marginBottom:'1em'}}>No transactions found.</p>
+              <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
+            </div>
+          ) : (
+            initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+          ))}
+          {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
+            <p>No transactions found.</p>
+          ) : (
+            toAcceptTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+          ))}
+          {showInitiatedSwaps === 'open' && (openTransactions.length === 0 ? (
+            <p>No transactions found.</p>
+          ) : (
+            openTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+          ))}
+          {showInitiatedSwaps === 'completed' && (completedTransactions.length === 0 ? (
+            <p>No transactions found.</p>
+          ) : (
+            completedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, true, false, handleViewDetails))
+          ))}
+          {showInitiatedSwaps === 'removed' && (removedTransactions.length === 0 ? (
+            <p>No transactions found.</p>
+          ) : (
+            removedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, true, handleViewDetails))
+          ))}
+        </div>
+      </div>
+    )}
+  </section>
+)}
+
         </div>
       </div>
       {formState.modalMessage && <Modal message={formState.modalMessage} onClose={closeModal} />}
