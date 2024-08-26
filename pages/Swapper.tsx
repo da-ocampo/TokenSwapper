@@ -6,6 +6,7 @@ import styles from '../styles/Home.module.css';
 import Modal from './components/Modal';
 import { BigNumber, ethers } from 'ethers';
 
+// Map token type names to corresponding enum values
 const tokenTypeMap: Record<string, number> = {
   NONE: 0,
   ERC20: 1,
@@ -14,12 +15,15 @@ const tokenTypeMap: Record<string, number> = {
   ERC1155: 4,
 };
 
+// Convert token type enum value to its name
 const tokenTypeEnumToName = (enumValue: number): string =>
   Object.keys(tokenTypeMap).find(key => tokenTypeMap[key] === enumValue) || 'Unknown';
 
+// Abbreviate Ethereum address
 const abbreviateAddress = (address: string) =>
   address ? `${address.substring(0, 8)}...${address.substring(address.length - 4)}` : '';
 
+// Fetch the name of a contract using its address
 const fetchContractName = async (contractAddress: string, signer: any) => {
   try {
     const contract = new ethers.Contract(contractAddress, ['function name() view returns (string)'], signer);
@@ -30,6 +34,7 @@ const fetchContractName = async (contractAddress: string, signer: any) => {
   }
 };
 
+// Fetch the status of a swap
 const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
@@ -73,6 +78,7 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any)
   }
 };
 
+// Fetch the status for open swaps
 const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
@@ -91,6 +97,7 @@ const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId: number
   }
 };
 
+// Render a Web3Button with given action and text
 const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (
   <Web3Button
     className="button"
@@ -102,6 +109,7 @@ const renderWeb3Button = (action: () => void, buttonText: string, contractAddres
   </Web3Button>
 );
 
+// Render balance required for a swap
 const renderRequiredInfo = (tx: any) => {
   if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
     const { acceptorTokenQuantity, acceptorETHPortion } = tx.data.swap;
@@ -117,6 +125,7 @@ const renderRequiredInfo = (tx: any) => {
   return null;
 };
 
+// Render the swap box UI component
 const renderSwapBox = (
   tx: any,
   formState: any,
@@ -232,6 +241,7 @@ const renderSwapBox = (
   );
 };
 
+// Main component for the token swapper
 const Swapper: NextPage = () => {
   const address = useAddress();
   const { contract: swapContract } = useContract(CONTRACT_ADDRESS);
@@ -249,6 +259,7 @@ const Swapper: NextPage = () => {
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
   const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
 
+  // Fetch token decimals and set calculated value
   const fetchTokenDecimals = useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
     const tokenType = formState[`${side}TokenType`];
     
@@ -276,6 +287,7 @@ const Swapper: NextPage = () => {
     }
   }, [formState, signer]);
   
+  // Handle changes in ERC contract
   const handleERCContractChange = async (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}ERCContract`]: value }));
     if (value) {
@@ -286,6 +298,7 @@ const Swapper: NextPage = () => {
     }
   };
   
+  // Handle changes in token quantity
   const handleTokenQuantityChange = (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
     const decimals = tokenDecimals[side];
@@ -297,7 +310,7 @@ const Swapper: NextPage = () => {
     }
   };
   
-
+  // Fetch all swap transactions
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer && address) {
       try {
@@ -396,24 +409,29 @@ const Swapper: NextPage = () => {
     }
   }, [swapContract, signer, address]);
 
+  // Periodically fetch transactions
   useEffect(() => {
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
   }, [fetchTransactions]);
 
+  // Fetch transactions when the user connects their wallet
   useEffect(() => {
     if (address) {
       fetchTransactions();
     }
   }, [address, fetchTransactions]);
 
+  // Fetch token decimals when contract addresses change
   useEffect(() => {
     if (formState.initiatorERCContract) fetchTokenDecimals(formState.initiatorERCContract, 'initiator');
     if (formState.acceptorERCContract) fetchTokenDecimals(formState.acceptorERCContract, 'acceptor');
   }, [formState.initiatorERCContract, formState.acceptorERCContract, fetchTokenDecimals]);
 
+  // Map token type name to its enum value
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
+  // Parse swap data to be passed to the contract
   const parseSwapData = (data: any[]): any[] =>
     data.map(value => {
       if (typeof value === 'string' && value.startsWith('0x')) return value;
@@ -423,6 +441,7 @@ const Swapper: NextPage = () => {
       return value;
     });
 
+  // Handle initiating a new swap
   const handleSwap = async () => {
     const {
       acceptorAddress,
@@ -498,6 +517,7 @@ const Swapper: NextPage = () => {
     }
   };
 
+  // Handle completing a swap
   const handleCompleteSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract) {
       setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
@@ -525,6 +545,7 @@ const Swapper: NextPage = () => {
     }
   };
 
+  // Handle removing a swap
   const handleRemoveSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract) {
       setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
@@ -547,6 +568,7 @@ const Swapper: NextPage = () => {
     }
   };
 
+  // Handle token approval
   const handleApprove = async (swapId: number) => {
     const form = formState[swapId.toString()];
     const { approveContractAddress, approveTokenId } = form || {};
@@ -572,12 +594,14 @@ const Swapper: NextPage = () => {
     }
   };
 
+  // Close the modal
   const closeModal = () => {
     setShowModal(false);
     setFormState(prevState => ({ ...prevState, modalMessage: null }));
     setModalData(null);
   };
 
+  // Show details of a swap
   const handleViewDetails = (swapData: any) => {
     const parsedData = {
       ...swapData,
@@ -883,83 +907,82 @@ const Swapper: NextPage = () => {
               </div>
             </section>
           )}
-{currentPage === 'swapList' && (
-  <section id="swapList">
-    {!address && (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
-        <ConnectWallet />
-      </div>
-    )}
-    {address && (
-      <div className="swapGrid">
-        <div className="toggleButtons">
-          <button
-            className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
-            onClick={() => setShowInitiatedSwaps('initiated')}
-          >
-            Initiated Swaps
-          </button>
-          <button
-            className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
-            onClick={() => setShowInitiatedSwaps('toAccept')}
-          >
-            To Accept Swaps
-          </button>
-          <button
-            className={`toggle-button ${showInitiatedSwaps === 'open' ? 'active' : ''}`}
-            onClick={() => setShowInitiatedSwaps('open')}
-          >
-            Open Swaps
-          </button>
-          <button
-            className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
-            onClick={() => setShowInitiatedSwaps('completed')}
-          >
-            Completed Swaps
-          </button>
-          <button
-            className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
-            onClick={() => setShowInitiatedSwaps('removed')}
-          >
-            Removed Swaps
-          </button>
-        </div>
-        <div className="swapContainer">
-          {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
-            <div>
-              <p style={{textAlign: 'center', marginBottom:'1em'}}>No transactions found.</p>
-              <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
-            </div>
-          ) : (
-            initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-          ))}
-          {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
-            <p>No transactions found.</p>
-          ) : (
-            toAcceptTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-          ))}
-          {showInitiatedSwaps === 'open' && (openTransactions.length === 0 ? (
-            <p>No transactions found.</p>
-          ) : (
-            openTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-          ))}
-          {showInitiatedSwaps === 'completed' && (completedTransactions.length === 0 ? (
-            <p>No transactions found.</p>
-          ) : (
-            completedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, true, false, handleViewDetails))
-          ))}
-          {showInitiatedSwaps === 'removed' && (removedTransactions.length === 0 ? (
-            <p>No transactions found.</p>
-          ) : (
-            removedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, true, handleViewDetails))
-          ))}
-        </div>
-      </div>
-    )}
-  </section>
-)}
-
+          {currentPage === 'swapList' && (
+            <section id="swapList">
+              {!address && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                  <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
+                  <ConnectWallet />
+                </div>
+              )}
+              {address && (
+                <div className="swapGrid">
+                  <div className="toggleButtons">
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps('initiated')}
+                    >
+                      Initiated Swaps
+                    </button>
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps('toAccept')}
+                    >
+                      To Accept Swaps
+                    </button>
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'open' ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps('open')}
+                    >
+                      Open Swaps
+                    </button>
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps('completed')}
+                    >
+                      Completed Swaps
+                    </button>
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'removed' ? 'active' : ''}`}
+                      onClick={() => setShowInitiatedSwaps('removed')}
+                    >
+                      Removed Swaps
+                    </button>
+                  </div>
+                  <div className="swapContainer">
+                    {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
+                      <div>
+                        <p style={{textAlign: 'center', marginBottom:'1em'}}>No transactions found.</p>
+                        <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
+                      </div>
+                    ) : (
+                      initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                    ))}
+                    {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
+                      <p>No transactions found.</p>
+                    ) : (
+                      toAcceptTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                    ))}
+                    {showInitiatedSwaps === 'open' && (openTransactions.length === 0 ? (
+                      <p>No transactions found.</p>
+                    ) : (
+                      openTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                    ))}
+                    {showInitiatedSwaps === 'completed' && (completedTransactions.length === 0 ? (
+                      <p>No transactions found.</p>
+                    ) : (
+                      completedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, true, false, handleViewDetails))
+                    ))}
+                    {showInitiatedSwaps === 'removed' && (removedTransactions.length === 0 ? (
+                      <p>No transactions found.</p>
+                    ) : (
+                      removedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, true, handleViewDetails))
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </div>
       {formState.modalMessage && <Modal message={formState.modalMessage} onClose={closeModal} />}
