@@ -8,7 +8,7 @@ import { BigNumber, ethers } from 'ethers';
 
 // Map token type names to corresponding enum values
 const tokenTypeMap: Record<string, number> = {
-  NONE: 0,
+  ETH: 0,
   ERC20: 1,
   ERC777: 2,
   ERC721: 3,
@@ -25,6 +25,9 @@ const abbreviateAddress = (address: string) =>
 
 // Fetch the name of a contract using its address
 const fetchContractName = async (contractAddress: string, signer: any) => {
+  if (contractAddress === ethers.constants.AddressZero) {
+    return "ETH";
+  }
   try {
     const contract = new ethers.Contract(contractAddress, ['function name() view returns (string)'], signer);
     return await contract.name();
@@ -142,28 +145,28 @@ const renderSwapBox = (
 
   const renderActionButton = () => {
     const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
-  
+
     if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
       if (initiator === address) {
         if (swapStatus === 'Not Ready' && swapReason === 'Initiator must approve token') {
           return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract);
         }
-  
+
         if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-  
+
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-  
+
         return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
       }
-  
+
       if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
         return null;
       }
-  
+
       if (acceptor === '0x0000000000000000000000000000000000000000') {
         return (
           <>
@@ -179,7 +182,7 @@ const renderSwapBox = (
         }
         return null;
       }
-  
+
       if (initiator === address) {
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
           return (
@@ -189,21 +192,21 @@ const renderSwapBox = (
             </>
           );
         }
-  
+
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
-  
+
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
         }
       }
-  
+
       if (acceptor === address) {
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
           return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
         }
-  
+
         if (swapStatus === 'Ready') {
           return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
         }
@@ -241,12 +244,63 @@ const renderSwapBox = (
   );
 };
 
+// Enhanced error handling function to map specific Solidity errors to readable messages
+const parseErrorReason = (error: any) => {
+  const reason = error?.data?.message || error?.message || '';
+
+  // Map specific error messages to human-readable reasons
+  if (reason.includes('ZeroAddressDisallowed')) return 'ZeroAddressDisallowed  Triggered if the acceptor address is the zero address (0x0000000000000000000000000000000000000000) and the acceptorTokenType is not ERC20 or ERC777.';
+  if (reason.includes('InitiatorNotMatched')) return 'InitiatorNotMatched  Triggered if the msg.sender does not match the _swap.initiator during the initiation of a swap.';
+  if (reason.includes('InitiatorEthPortionNotMatched')) return 'InitiatorEthPortionNotMatched  Triggered if the msg.value does not match _swap.initiatorETHPortion during the initiation of a swap.';
+  if (reason.includes('TwoWayEthPortionsDisallowed')) return 'TwoWayEthPortionsDisallowed  Triggered if both the initiator and the acceptor attempt to include an ETH portion in the swap, which is not allowed.';
+  if (reason.includes('SwapCompleteOrDoesNotExist')) return 'SwapCompleteOrDoesNotExist  Triggered if the swap with the given _swapId does not exist or has already been completed.';
+  if (reason.includes('NotAcceptor')) return 'NotAcceptor  Triggered if msg.sender is not the acceptor address specified in the swap.';
+  if (reason.includes('IncorrectOrMissingAcceptorETH')) return 'IncorrectOrMissingAcceptorETH  Triggered if the ETH portion sent by the acceptor (msg.value) does not match the expected _swap.acceptorETHPortion.';
+  if (reason.includes('NotInitiator')) return 'NotInitiator  Triggered if msg.sender is not the initiator of the swap when trying to remove a swap.';
+  if (reason.includes('EmptyWithdrawDisallowed')) return 'EmptyWithdrawDisallowed  Triggered if the withdraw function is called and the caller (msg.sender) has a zero balance.';
+  if (reason.includes('ZeroAddressSetForValidTokenType')) return 'ZeroAddressSetForValidTokenType  Triggered during validation if an ERC20, ERC721, or ERC1155 contract address is set to the zero address (0x0000000000000000000000000000000000000000).';
+  if (reason.includes('TokenQuantityMissing')) return 'TokenQuantityMissing  Triggered during validation if the token quantity for an ERC20 or ERC1155 swap is set to zero.';
+  if (reason.includes('TokenIdMissing')) return 'TokenIdMissing  Triggered during validation if the token ID for an ERC721 or ERC1155 swap is set to zero.';
+  if (reason.includes('ValueOrTokenMissing')) return 'ValueOrTokenMissing  Triggered during validation if both the ETH portion and the token information are missing for a swap.';
+  if (reason.includes('TokenTransferFailed')) return 'TokenTransferFailed  Triggered if the transfer of an ERC20 token fails.';
+  if (reason.includes('NoReentry')) return 'NoReentry  Triggered if a reentrant call is detected.';
+  if (reason.includes('ETHSendingFailed')) return 'ETHSendingFailed  Triggered if the contract fails to send ETH to the msg.sender during withdrawal.';
+
+  // General Solidity Errors
+  if (reason.includes('user rejected transaction')) return 'User rejected the transaction';
+  if (reason.includes('out of gas')) return 'Out of Gas  Occurs if a transaction runs out of gas before completion.';
+  if (reason.includes('invalid opcode')) return 'Invalid Opcode  Occurs if the EVM encounters an invalid operation code.';
+  if (reason.includes('stack too deep')) return 'Stack Too Deep  Occurs if there are too many local variables within a single function or in the contract scope.';
+  if (reason.includes('revert')) return 'Revert  Occurs when the contract explicitly triggers a revert without a custom error message.';
+  if (reason.includes('assert')) return 'Assert  Occurs when an assert statement fails; this typically indicates a bug.';
+
+  // Insufficient Funds or Permissions
+  if (reason.includes('insufficient funds for gas * price + value')) return 'Insufficient Funds  Triggered if the sender does not have enough ETH to cover the gas cost and the value being sent.';
+  if (reason.includes('ERC721: transfer caller is not owner nor approved')) return 'ERC721: Transfer Caller is Not Owner Nor Approved  Triggered if a non-owner or non-approved party attempts to transfer an ERC721 token.';
+  if (reason.includes('ERC20: transfer amount exceeds balance')) return 'ERC20: Transfer Amount Exceeds Balance  Triggered if the sender\'s balance is insufficient for the ERC20 token transfer.';
+  if (reason.includes('ERC20: transfer amount exceeds allowance')) return 'ERC20: Transfer Amount Exceeds Allowance  Triggered if the sender\'s allowance is insufficient for the ERC20 token transfer.';
+  if (reason.includes('ERC1155: insufficient balance for transfer')) return 'ERC1155: Insufficient Balance for Transfer  Triggered if the sender’s balance is insufficient for the ERC1155 token transfer.';
+
+  // Contract Deployment and Interaction Errors
+  if (reason.includes('constructor out of gas')) return 'Constructor Out of Gas  Occurs if the contract\'s constructor runs out of gas during deployment.';
+  if (reason.includes('unknown contract')) return 'Unknown Contract  Triggered when interacting with a contract at an address that does not have any contract deployed.';
+  if (reason.includes('execution reverted')) return 'Execution Reverted  A general error message indicating that the transaction was reverted due to any of the above reasons or other unforeseen issues.';
+
+  // Default fallback
+  return 'An unknown error occurred. Please try again.';
+};
+
 // Main component for the token swapper
 const Swapper: NextPage = () => {
   const address = useAddress();
   const { contract: swapContract } = useContract(CONTRACT_ADDRESS);
   const signer = useSigner();
-  const [formState, setFormState] = useState<Record<string, any>>({});
+  const [formState, setFormState] = useState<Record<string, any>>({
+    initiatorTokenType: 'NONE',
+    initiatorERCContract: ethers.constants.AddressZero,
+    acceptorTokenType: 'NONE',
+    acceptorERCContract: ethers.constants.AddressZero,
+  });
   const [initiatedTransactions, setInitiatedTransactions] = useState<any[]>([]);
   const [toAcceptTransactions, setToAcceptTransactions] = useState<any[]>([]);
   const [openTransactions, setOpenTransactions] = useState<any[]>([]);
@@ -258,18 +312,19 @@ const Swapper: NextPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
   const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
+  const [initiatedSwapFilter, setInitiatedSwapFilter] = useState<'regular' | 'open'>('regular'); // New state for filter
 
   // Fetch token decimals and set calculated value
   const fetchTokenDecimals = useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
     const tokenType = formState[`${side}TokenType`];
-    
+
     if (tokenType === 'ERC20' || tokenType === 'ERC777') {
       if (signer) {
         try {
           const contract = new ethers.Contract(contractAddress, ['function decimals() view returns (uint8)'], signer);
           const decimals = await contract.decimals();
           setTokenDecimals(prevDecimals => ({ ...prevDecimals, [side]: decimals }));
-  
+
           const quantity = formState[`${side}TokenQuantity`];
           if (quantity) {
             const value = ethers.utils.formatUnits(quantity, decimals);
@@ -286,7 +341,7 @@ const Swapper: NextPage = () => {
       setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
   }, [formState, signer]);
-  
+
   // Handle changes in ERC contract
   const handleERCContractChange = async (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}ERCContract`]: value }));
@@ -297,7 +352,7 @@ const Swapper: NextPage = () => {
       setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
   };
-  
+
   // Handle changes in token quantity
   const handleTokenQuantityChange = (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
@@ -309,13 +364,13 @@ const Swapper: NextPage = () => {
       setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
     }
   };
-  
+
   // Fetch all swap transactions
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer && address) {
       try {
         const events = await swapContract.events.getAllEvents();
-        
+
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
         const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
@@ -348,7 +403,7 @@ const Swapper: NextPage = () => {
           filteredInitiatedEvents.filter(event => event.data.swap.acceptor === address)
         );
         const openTransactionsWithNames = await fetchNames(
-          filteredInitiatedEvents.filter(event => 
+          filteredInitiatedEvents.filter(event =>
             event.data.swap.acceptor === '0x0000000000000000000000000000000000000000' && event.data.swap.initiator !== address
           )
         );
@@ -367,6 +422,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.initiatorERCContract,
               approveTokenId: tx.data.swap.initiatorTokenId?.toString() || '',
+              approveTokenQuantity: tx.data.swap.initiatorTokenQuantity || 0,
             }
           }));
         }
@@ -380,6 +436,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.acceptorERCContract,
               approveTokenId: tx.data.swap.acceptorTokenId?.toString() || '',
+              approveTokenQuantity: tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
@@ -393,6 +450,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: address === tx.data.swap.initiator ? tx.data.swap.initiatorERCContract : tx.data.swap.acceptorERCContract,
               approveTokenId: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenId?.toString() || '' : tx.data.swap.acceptorTokenId?.toString() || '',
+              approveTokenQuantity: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenQuantity || 0 : tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
@@ -470,17 +528,19 @@ const Swapper: NextPage = () => {
           initiator: address,
           acceptor: finalAcceptorAddress,
           initiatorTokenType: mapTokenTypeToEnum(initiatorTokenType),
-          initiatorERCContract,
+          initiatorERCContract: initiatorTokenType === 'NONE' ? ethers.constants.AddressZero : initiatorERCContract,
           initiatorTokenId: parseInt(initiatorTokenId) || 0,
           initiatorTokenQuantity: parseInt(initiatorTokenQuantity) || 0,
-          initiatorETHPortion: parseFloat(initiatorETHPortion) || 0,
+          initiatorETHPortion: ethers.utils.parseEther(initiatorETHPortion || '0'), // Parsing ETH correctly here
           acceptorTokenType: mapTokenTypeToEnum(acceptorTokenType),
-          acceptorERCContract,
+          acceptorERCContract: acceptorTokenType === 'NONE' ? ethers.constants.AddressZero : acceptorERCContract,
           acceptorTokenId: parseInt(acceptorTokenId) || 0,
           acceptorTokenQuantity: parseInt(acceptorTokenQuantity) || 0,
-          acceptorETHPortion: parseFloat(acceptorETHPortion) || 0,
+          acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'), // Parsing ETH correctly here
         },
-      ]);
+      ], {
+        value: ethers.utils.parseEther(initiatorETHPortion || '0'), // Correctly setting the value in wei
+      });
 
       const receipt = tx.receipt;
       const swapIdHex = receipt?.logs?.[0]?.topics?.[1];
@@ -491,16 +551,17 @@ const Swapper: NextPage = () => {
           [swapId]: {
             approveContractAddress: initiatorERCContract,
             approveTokenId: initiatorTokenId?.toString() || '',
+            approveTokenQuantity: initiatorTokenQuantity || 0,
           }
         }));
         setFormState({
           acceptorAddress: '',
           initiatorTokenType: 'NONE',
-          initiatorERCContract: '',
+          initiatorERCContract: ethers.constants.AddressZero,
           initiatorTokenQuantity: '',
           initiatorETHPortion: '',
           acceptorTokenType: 'NONE',
-          acceptorERCContract: '',
+          acceptorERCContract: ethers.constants.AddressZero,
           acceptorTokenQuantity: '',
           acceptorETHPortion: '',
           initiatorTokenId: '',
@@ -513,7 +574,8 @@ const Swapper: NextPage = () => {
       }
     } catch (error) {
       console.error('Error initiating Swap:', error);
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Error initiating Swap. Please try again.' }));
+      const reason = parseErrorReason(error);
+      setFormState(prevState => ({ ...prevState, modalMessage: `Error initiating Swap. ${reason}` }));
     }
   };
 
@@ -541,7 +603,8 @@ const Swapper: NextPage = () => {
       );
     } catch (error) {
       console.error('Error completing swap:', error);
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Error completing swap. Please try again.' }));
+      const reason = parseErrorReason(error);
+      setFormState(prevState => ({ ...prevState, modalMessage: `Error completing swap. ${reason}` }));
     }
   };
 
@@ -564,7 +627,8 @@ const Swapper: NextPage = () => {
       );
     } catch (error) {
       console.error('Error removing swap:', error);
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Error removing swap. Please try again.' }));
+      const reason = parseErrorReason(error);
+      setFormState(prevState => ({ ...prevState, modalMessage: `Error removing swap. ${reason}` }));
     }
   };
 
@@ -616,6 +680,15 @@ const Swapper: NextPage = () => {
     setShowModal(true);
   };
 
+  // Handle filter hover and click events
+  const handleInitiatedSwapHover = () => {
+    setShowInitiatedSwaps('initiated');
+  };
+
+  const handleInitiatedSwapClick = (filter: 'regular' | 'open') => {
+    setInitiatedSwapFilter(filter);
+  };
+
   return (
     <div className={styles.main}>
       <div className={styles.container}>
@@ -627,22 +700,34 @@ const Swapper: NextPage = () => {
           </div>
           <nav className="navbar">
             <ul className="navList">
-              <li className="navItem">
-                <a
-                  className={`toggle-button ${currentPage === 'swapList' ? 'active' : ''}`}
-                  onClick={() => setCurrentPage('swapList')}
-                >
-                  Swaps
-                </a>
-              </li>
-              <li className="navItem">
-                <a
-                  className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
-                  onClick={() => setCurrentPage('initSwap')}
-                >
-                  Start New Swap
-                </a>
-              </li>
+              {address ? (
+                <>
+                  <li className="navItem">
+                    <a
+                      className={`toggle-button ${currentPage === 'swapList' ? 'active' : ''}`}
+                      onClick={() => setCurrentPage('swapList')}
+                    >
+                      Swaps
+                    </a>
+                  </li>
+                  <li className="navItem">
+                    <a
+                      className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
+                      onClick={() => setCurrentPage('initSwap')}
+                    >
+                      Start New Swap
+                    </a>
+                  </li>
+                  <li className="navItem">
+                    <span className="wallet-address">
+                      {abbreviateAddress(address)}
+                    </span>
+                  </li>
+                </>
+              ) : (
+                <li className="navItem">
+                </li>
+              )}
             </ul>
           </nav>
         </header>
@@ -657,7 +742,7 @@ const Swapper: NextPage = () => {
                   </div>
                 )}
                 {address && (
-                  <div>   
+                  <div>
                     <h3>Enter Swap Information</h3>
                     <p>As the initiator, provide the following information:</p>
                     <div className="guide-grid">
@@ -668,7 +753,11 @@ const Swapper: NextPage = () => {
                           <select
                             name="initiatorTokenType"
                             value={formState.initiatorTokenType || 'NONE'}
-                            onChange={(e) => setFormState({ ...formState, initiatorTokenType: e.target.value })}
+                            onChange={(e) => {
+                              const tokenType = e.target.value;
+                              const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
+                              setFormState({ ...formState, initiatorTokenType: tokenType, initiatorERCContract: ercContract });
+                            }}
                           >
                             <option value="NONE">None</option>
                             <option value="ERC20">ERC20</option>
@@ -677,7 +766,7 @@ const Swapper: NextPage = () => {
                             <option value="ERC1155">ERC1155</option>
                           </select>
                         </div>
-                        {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
+                        {formState.initiatorTokenType !== 'NONE' && (
                           <>
                             <div className="form-group">
                               <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
@@ -689,78 +778,64 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'initiator')}
                               />
                             </div>
-                            <div className="form-group">
-                              <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
-                              <input
-                                type="text"
-                                name="initiatorTokenQuantity"
-                                placeholder="Initiator&apos;s Token Quantity"
-                                value={formState.initiatorTokenQuantity || ''}
-                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
-                              />
-                            </div>
-                            <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                              <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
-                              <p><em>Actual Token Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
-                            </div>
+                            {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
+                                  <input
+                                    type="text"
+                                    name="initiatorTokenQuantity"
+                                    placeholder="Initiator&apos;s Token Quantity"
+                                    value={formState.initiatorTokenQuantity || ''}
+                                    onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
+                                  />
+                                </div>
+                                {formState.initiatorTokenQuantity && (
+                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                                    <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
+                                    <p><em>Actual Token Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
+                                  </div>
+                                )}
+                              </>
+                            ) : formState.initiatorTokenType === 'ERC721' ? (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
+                                  <input
+                                    type="text"
+                                    name="initiatorTokenId"
+                                    placeholder="Initiator&apos;s Token ID"
+                                    value={formState.initiatorTokenId || ''}
+                                    onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
+                                  />
+                                </div>
+                              </>
+                            ) : formState.initiatorTokenType === 'ERC1155' && (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
+                                  <input
+                                    type="text"
+                                    name="initiatorTokenId"
+                                    placeholder="Initiator&apos;s Token ID"
+                                    value={formState.initiatorTokenId || ''}
+                                    onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
+                                  />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
+                                  <input
+                                    type="text"
+                                    name="initiatorTokenQuantity"
+                                    placeholder="Initiator&apos;s Token Quantity"
+                                    value={formState.initiatorTokenQuantity || ''}
+                                    onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
+                                  />
+                                </div>
+                              </>
+                            )}
                           </>
-                        ) : formState.initiatorTokenType === 'ERC721' ? (
-                          <>
-                            <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
-                              <input
-                                type="text"
-                                name="initiatorERCContract"
-                                placeholder="Initiator&apos;s Token Contract Address"
-                                value={formState.initiatorERCContract || ''}
-                                onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
-                              <input
-                                type="text"
-                                name="initiatorTokenId"
-                                placeholder="Initiator&apos;s Token ID"
-                                value={formState.initiatorTokenId || ''}
-                                onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
-                              />
-                            </div>
-                          </>
-                        ) : formState.initiatorTokenType === 'ERC1155' ? (
-                          <>
-                            <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
-                              <input
-                                type="text"
-                                name="initiatorERCContract"
-                                placeholder="Initiator&apos;s Token Contract Address"
-                                value={formState.initiatorERCContract || ''}
-                                onChange={(e) => setFormState({ ...formState, initiatorERCContract: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
-                              <input
-                                type="text"
-                                name="initiatorTokenId"
-                                placeholder="Initiator&apos;s Token ID"
-                                value={formState.initiatorTokenId || ''}
-                                onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
-                              <input
-                                type="text"
-                                name="initiatorTokenQuantity"
-                                placeholder="Initiator&apos;s Token Quantity"
-                                value={formState.initiatorTokenQuantity || ''}
-                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator')}
-                              />
-                            </div>
-                          </>
-                        ) : null}
+                        )}
                         <div className="form-group">
                           <label htmlFor="initiatorETHPortion">Initiator&apos;s ETH Portion:</label>
                           <input
@@ -771,6 +846,13 @@ const Swapper: NextPage = () => {
                             onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
                           />
                         </div>
+                        {formState.initiatorETHPortion && (
+                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                            <p><em>Token Decimals: 18</em></p>
+                            <p><em>Wei: {ethers.utils.parseEther(formState.initiatorETHPortion).toString()}</em></p>
+                            <p><em>Gwei: {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <h4>Acceptor Information:</h4>
@@ -789,7 +871,11 @@ const Swapper: NextPage = () => {
                           <select
                             name="acceptorTokenType"
                             value={formState.acceptorTokenType || 'NONE'}
-                            onChange={(e) => setFormState({ ...formState, acceptorTokenType: e.target.value })}
+                            onChange={(e) => {
+                              const tokenType = e.target.value;
+                              const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
+                              setFormState({ ...formState, acceptorTokenType: tokenType, acceptorERCContract: ercContract });
+                            }}
                           >
                             <option value="NONE">None</option>
                             <option value="ERC20">ERC20</option>
@@ -798,7 +884,7 @@ const Swapper: NextPage = () => {
                             <option value="ERC1155">ERC1155</option>
                           </select>
                         </div>
-                        {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
+                        {formState.acceptorTokenType !== 'NONE' && (
                           <>
                             <div className="form-group">
                               <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
@@ -810,78 +896,64 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'acceptor')}
                               />
                             </div>
-                            <div className="form-group">
-                              <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
-                              <input
-                                type="text"
-                                name="acceptorTokenQuantity"
-                                placeholder="Acceptor&apos;s Token Quantity"
-                                value={formState.acceptorTokenQuantity || ''}
-                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
-                              />
-                            </div>
-                            <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                              <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
-                              <p><em>Actual Token Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
-                            </div>
+                            {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
+                                  <input
+                                    type="text"
+                                    name="acceptorTokenQuantity"
+                                    placeholder="Acceptor&apos;s Token Quantity"
+                                    value={formState.acceptorTokenQuantity || ''}
+                                    onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
+                                  />
+                                </div>
+                                {formState.acceptorTokenQuantity && (
+                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                                    <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
+                                    <p><em>Actual Token Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
+                                  </div>
+                                )}
+                              </>
+                            ) : formState.acceptorTokenType === 'ERC721' ? (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
+                                  <input
+                                    type="text"
+                                    name="acceptorTokenId"
+                                    placeholder="Acceptor&apos;s Token ID"
+                                    value={formState.acceptorTokenId || ''}
+                                    onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
+                                  />
+                                </div>
+                              </>
+                            ) : formState.acceptorTokenType === 'ERC1155' && (
+                              <>
+                                <div className="form-group">
+                                  <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
+                                  <input
+                                    type="text"
+                                    name="acceptorTokenId"
+                                    placeholder="Acceptor&apos;s Token ID"
+                                    value={formState.acceptorTokenId || ''}
+                                    onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
+                                  />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
+                                  <input
+                                    type="text"
+                                    name="acceptorTokenQuantity"
+                                    placeholder="Acceptor&apos;s Token Quantity"
+                                    value={formState.acceptorTokenQuantity || ''}
+                                    onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
+                                  />
+                                </div>
+                              </>
+                            )}
                           </>
-                        ) : formState.acceptorTokenType === 'ERC721' ? (
-                          <>
-                            <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
-                              <input
-                                type="text"
-                                name="acceptorERCContract"
-                                placeholder="Acceptor&apos;s Token Contract Address"
-                                value={formState.acceptorERCContract || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
-                              <input
-                                type="text"
-                                name="acceptorTokenId"
-                                placeholder="Acceptor&apos;s Token ID"
-                                value={formState.acceptorTokenId || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
-                              />
-                            </div>
-                          </>
-                        ) : formState.acceptorTokenType === 'ERC1155' ? (
-                          <>
-                            <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
-                              <input
-                                type="text"
-                                name="acceptorERCContract"
-                                placeholder="Acceptor&apos;s Token Contract Address"
-                                value={formState.acceptorERCContract || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorERCContract: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
-                              <input
-                                type="text"
-                                name="acceptorTokenId"
-                                placeholder="Acceptor&apos;s Token ID"
-                                value={formState.acceptorTokenId || ''}
-                                onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
-                              <input
-                                type="text"
-                                name="acceptorTokenQuantity"
-                                placeholder="Acceptor&apos;s Token Quantity"
-                                value={formState.acceptorTokenQuantity || ''}
-                                onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor')}
-                              />
-                            </div>
-                          </>
-                        ) : null}
+                        )}
                         <div className="form-group">
                           <label htmlFor="acceptorETHPortion">Acceptor&apos;s ETH Portion:</label>
                           <input
@@ -892,6 +964,13 @@ const Swapper: NextPage = () => {
                             onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
                           />
                         </div>
+                        {formState.acceptorETHPortion && (
+                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                            <p><em>Token Decimals: 18</em></p>
+                            <p><em>Wei: {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
+                            <p><em>Gwei: {ethers.utils.parseUnits(formState.acceptorETHPortion, 'gwei').toString()}</em></p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Web3Button
@@ -918,12 +997,33 @@ const Swapper: NextPage = () => {
               {address && (
                 <div className="swapGrid">
                   <div className="toggleButtons">
-                    <button
-                      className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
-                      onClick={() => setShowInitiatedSwaps('initiated')}
-                    >
-                      Initiated Swaps
-                    </button>
+                  <div className="initiated-swap-wrapper" style={{ display: 'inline-block', position: 'relative' }}>
+                      <button
+                        className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
+                        onClick={() => {
+                          setShowInitiatedSwaps('initiated');
+                          handleInitiatedSwapClick('regular'); // Default to regular swaps on click
+                        }}
+                      >
+                        Initiated Swaps
+                      </button>
+                      {showInitiatedSwaps === 'initiated' && (
+                        <div className="initiated-swap-filters" style={{ display: 'flex', position: 'absolute', top: 0, left: '100%' }}>
+                          <button
+                            className={`toggle-button ${initiatedSwapFilter === 'regular' ? 'active' : ''}`}
+                            onClick={() => handleInitiatedSwapClick('regular')}
+                          >
+                            Regular Swaps
+                          </button>
+                          <button
+                            className={`toggle-button ${initiatedSwapFilter === 'open' ? 'active' : ''}`}
+                            onClick={() => handleInitiatedSwapClick('open')}
+                          >
+                            Open Swaps
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('toAccept')}
@@ -935,6 +1035,14 @@ const Swapper: NextPage = () => {
                       onClick={() => setShowInitiatedSwaps('open')}
                     >
                       Open Swaps
+                      {showInitiatedSwaps === 'open' && (
+                        <>
+                          <span className="info-icon">?</span>
+                          <div className="info-tooltip">
+                            A swap where the acceptor address is set to the zero address means that the swap can be accepted by anyone.
+                          </div>
+                        </>
+                      )}
                     </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'completed' ? 'active' : ''}`}
@@ -950,14 +1058,24 @@ const Swapper: NextPage = () => {
                     </button>
                   </div>
                   <div className="swapContainer">
-                    {showInitiatedSwaps === 'initiated' && (initiatedTransactions.length === 0 ? (
-                      <div>
-                        <p style={{textAlign: 'center', marginBottom:'1em'}}>No transactions found.</p>
-                        <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
-                      </div>
-                    ) : (
-                      initiatedTransactions.map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                    ))}
+                    {showInitiatedSwaps === 'initiated' && (
+                      initiatedSwapFilter === 'regular' ? (
+                        initiatedTransactions.length === 0 ? (
+                          <div>
+                            <p style={{ textAlign: 'center', marginBottom: '1em' }}>No transactions found.</p>
+                            <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
+                          </div>
+                        ) : (
+                          initiatedTransactions
+                            .filter(tx => tx.data.swap.acceptor !== '0x0000000000000000000000000000000000000000')
+                            .map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                        )
+                      ) : (
+                        initiatedTransactions
+                          .filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000')
+                          .map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                      )
+                    )}
                     {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
                       <p>No transactions found.</p>
                     ) : (
@@ -992,12 +1110,12 @@ const Swapper: NextPage = () => {
           <div style={{ textAlign: 'left' }}>
             <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
             <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
-            <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorERCContract}</p>
-            <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorERCContract}</p>
-            <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenId}</p>
-            <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenId}</p>
-            <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenQuantity}</p>
-            <p><strong>Acceptor Token Quantity:</strong> {modalData.acceptorTokenQuantity}</p>
+            <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorERCContract}</p>
+            <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorERCContract}</p>
+            <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenId}</p>
+            <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenId}</p>
+            <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenQuantity}</p>
+            <p><strong>Acceptor Token Quantity:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenQuantity}</p>
             <p><strong>Initiator ETH Portion:</strong> {modalData.initiatorETHPortion}</p>
             <p><strong>Acceptor ETH Portion:</strong> {modalData.acceptorETHPortion}</p>
             <p><strong>Initiator Token Type:</strong> {tokenTypeEnumToName(modalData.initiatorTokenType)}</p>
