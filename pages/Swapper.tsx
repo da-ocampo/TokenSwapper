@@ -370,7 +370,7 @@ const Swapper: NextPage = () => {
     if (swapContract && signer && address) {
       try {
         const events = await swapContract.events.getAllEvents();
-
+        
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
         const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
@@ -403,7 +403,7 @@ const Swapper: NextPage = () => {
           filteredInitiatedEvents.filter(event => event.data.swap.acceptor === address)
         );
         const openTransactionsWithNames = await fetchNames(
-          filteredInitiatedEvents.filter(event =>
+          filteredInitiatedEvents.filter(event => 
             event.data.swap.acceptor === '0x0000000000000000000000000000000000000000' && event.data.swap.initiator !== address
           )
         );
@@ -422,7 +422,6 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.initiatorERCContract,
               approveTokenId: tx.data.swap.initiatorTokenId?.toString() || '',
-              approveTokenQuantity: tx.data.swap.initiatorTokenQuantity || 0,
             }
           }));
         }
@@ -436,7 +435,6 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.acceptorERCContract,
               approveTokenId: tx.data.swap.acceptorTokenId?.toString() || '',
-              approveTokenQuantity: tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
@@ -450,7 +448,6 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: address === tx.data.swap.initiator ? tx.data.swap.initiatorERCContract : tx.data.swap.acceptorERCContract,
               approveTokenId: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenId?.toString() || '' : tx.data.swap.acceptorTokenId?.toString() || '',
-              approveTokenQuantity: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenQuantity || 0 : tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
@@ -579,25 +576,33 @@ const Swapper: NextPage = () => {
     }
   };
 
-  // Handle completing a swap
   const handleCompleteSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract) {
       setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
       return;
     }
-
+  
     try {
       const parsedData = parseSwapData(swapData);
-      const ethPortion = parseFloat(swapData.acceptorETHPortion) || 0;
-
+  
+      let ethPortion;
+      if (BigNumber.isBigNumber(swapData.acceptorETHPortion)) {
+        ethPortion = swapData.acceptorETHPortion;
+      } else if (typeof swapData.acceptorETHPortion === 'string') {
+        ethPortion = ethers.utils.parseEther(swapData.acceptorETHPortion);
+      } else {
+        ethPortion = ethers.BigNumber.from(0);
+      }
+  
       await swapContract.call('completeSwap', [swapId, parsedData], {
-        value: ethers.utils.parseEther(ethPortion.toString()),
+        value: ethPortion,
       });
-
+  
       setFormState(prevState => ({
         ...prevState,
         modalMessage: `Swap with ID ${swapId} has been completed.`,
       }));
+  
       setInitiatedTransactions(prevTransactions =>
         prevTransactions.filter(tx => tx.data.swapId.toString() !== swapId.toString())
       );
@@ -607,6 +612,7 @@ const Swapper: NextPage = () => {
       setFormState(prevState => ({ ...prevState, modalMessage: `Error completing swap. ${reason}` }));
     }
   };
+  
 
   // Handle removing a swap
   const handleRemoveSwap = async (swapId: number, swapData: any) => {
@@ -632,31 +638,42 @@ const Swapper: NextPage = () => {
     }
   };
 
-  // Handle token approval
-  const handleApprove = async (swapId: number) => {
-    const form = formState[swapId.toString()];
-    const { approveContractAddress, approveTokenId } = form || {};
-    if (!address || !approveContractAddress) {
-      setFormState(prevState => ({
-        ...prevState,
-        modalMessage: 'Wallet not connected or approval contract not found.',
-      }));
-      return;
+// Handle token approval
+const handleApprove = async (swapId: number) => {
+  const form = formState[swapId.toString()];
+  const { approveContractAddress, approveTokenId, approveTokenQuantity } = form || {};
+
+  if (!address || !approveContractAddress) {
+    setFormState(prevState => ({
+      ...prevState,
+      modalMessage: 'Wallet not connected or approval contract not found.',
+    }));
+    return;
+  }
+
+  try {
+    const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
+    
+    let approvalAmount;
+
+    if (approveTokenQuantity && parseInt(approveTokenQuantity) > 0) {
+      approvalAmount = ethers.utils.parseUnits(approveTokenQuantity.toString(), 18);
+    } else {
+      approvalAmount = ethers.BigNumber.from(approveTokenId);
     }
 
-    try {
-      const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
-      const tx = await approveContract.approve(CONTRACT_ADDRESS, parseInt(approveTokenId));
+    const tx = await approveContract.approve(CONTRACT_ADDRESS, approvalAmount);
 
-      const provider = approveContract.provider;
-      provider.once(tx.hash, () => {
-        setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
-      });
-    } catch (error) {
-      console.error('Error approving token:', error);
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
-    }
-  };
+    const provider = approveContract.provider;
+    provider.once(tx.hash, () => {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Approval successful!' }));
+    });
+  } catch (error) {
+    console.error('Error approving token:', error);
+    setFormState(prevState => ({ ...prevState, modalMessage: 'Error approving token. Please try again.' }));
+  }
+};
+
 
   // Close the modal
   const closeModal = () => {
