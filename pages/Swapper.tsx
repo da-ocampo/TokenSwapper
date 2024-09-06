@@ -203,6 +203,14 @@ const renderSwapBox = (
       }
 
       if (acceptor === address) {
+        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
+          return (
+            <>
+              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
+            </>
+          );
+        }
+
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
           return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
         }
@@ -370,7 +378,7 @@ const Swapper: NextPage = () => {
     if (swapContract && signer && address) {
       try {
         const events = await swapContract.events.getAllEvents();
-        
+
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
         const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
@@ -403,7 +411,7 @@ const Swapper: NextPage = () => {
           filteredInitiatedEvents.filter(event => event.data.swap.acceptor === address)
         );
         const openTransactionsWithNames = await fetchNames(
-          filteredInitiatedEvents.filter(event => 
+          filteredInitiatedEvents.filter(event =>
             event.data.swap.acceptor === '0x0000000000000000000000000000000000000000' && event.data.swap.initiator !== address
           )
         );
@@ -422,6 +430,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.initiatorERCContract,
               approveTokenId: tx.data.swap.initiatorTokenId?.toString() || '',
+              approveTokenQuantity: tx.data.swap.initiatorTokenQuantity || 0,
             }
           }));
         }
@@ -435,6 +444,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: tx.data.swap.acceptorERCContract,
               approveTokenId: tx.data.swap.acceptorTokenId?.toString() || '',
+              approveTokenQuantity: tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
@@ -448,6 +458,7 @@ const Swapper: NextPage = () => {
             [tx.data.swapId.toString()]: {
               approveContractAddress: address === tx.data.swap.initiator ? tx.data.swap.initiatorERCContract : tx.data.swap.acceptorERCContract,
               approveTokenId: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenId?.toString() || '' : tx.data.swap.acceptorTokenId?.toString() || '',
+              approveTokenQuantity: address === tx.data.swap.initiator ? tx.data.swap.initiatorTokenQuantity || 0 : tx.data.swap.acceptorTokenQuantity || 0,
             }
           }));
         }
