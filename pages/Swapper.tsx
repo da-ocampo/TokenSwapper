@@ -343,14 +343,20 @@ const Swapper: NextPage = () => {
           </p>
           <p><strong>{tx.swapType}</strong></p>
           <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
-          <p>{initiatorAddress} ↔ {acceptorAddress}</p>
-          {renderRequiredInfo(tx)}
+          <p>
+            {tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' 
+              ? `Initiated by ${initiatorAddress}` 
+              : `${initiatorAddress} ↔ ${acceptorAddress}`
+            }
+          </p>
           <p>
             <span className={`status-dot ${dotClass}`}></span>
             <em><strong>{swapStatus}
             {swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}
             {swapStatus === 'Not Ready' && <em>, {tx.swapReason}</em>}</strong></em>
           </p>
+          {renderRequiredInfo(tx)}
+
         </div>
         {!isCompleted && !isRemoved && (
           <div className="swapActions">
