@@ -201,7 +201,7 @@ const Swapper: NextPage = () => {
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
   const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
-  const [initiatedSwapFilter, setInitiatedSwapFilter] = useState<'regular' | 'open'>('regular'); // New state for filter
+  const [initiatedSwapFilter, setInitiatedSwapFilter] = useState<'regular' | 'open'>('regular');
   
 
   const MAINNET_CHAIN_ID = 1;
@@ -228,11 +228,9 @@ const Swapper: NextPage = () => {
     }
   }, [chainId]);
 
-  // Separate useEffect to handle contract changes
   useEffect(() => {
     if (contractAddress) {
       console.log(`Contract address updated: ${contractAddress}`);
-      // You might want to trigger a re-fetch of data here
       fetchTransactions();
     }
   }, [contractAddress]);
@@ -599,15 +597,15 @@ const Swapper: NextPage = () => {
           initiatorERCContract: initiatorTokenType === 'NONE' ? ethers.constants.AddressZero : initiatorERCContract,
           initiatorTokenId: parseInt(initiatorTokenId) || 0,
           initiatorTokenQuantity: parseInt(initiatorTokenQuantity) || 0,
-          initiatorETHPortion: ethers.utils.parseEther(initiatorETHPortion || '0'), // Parsing ETH correctly here
+          initiatorETHPortion: ethers.utils.parseEther(initiatorETHPortion || '0'),
           acceptorTokenType: mapTokenTypeToEnum(acceptorTokenType),
           acceptorERCContract: acceptorTokenType === 'NONE' ? ethers.constants.AddressZero : acceptorERCContract,
           acceptorTokenId: parseInt(acceptorTokenId) || 0,
           acceptorTokenQuantity: parseInt(acceptorTokenQuantity) || 0,
-          acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'), // Parsing ETH correctly here
+          acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'),
         },
       ], {
-        value: ethers.utils.parseEther(initiatorETHPortion || '0'), // Correctly setting the value in wei
+        value: ethers.utils.parseEther(initiatorETHPortion || '0'),
       });
 
       const receipt = tx.receipt;
@@ -781,11 +779,6 @@ const handleApprove = async (swapId: number) => {
     };
     setModalData(parsedData);
     setShowModal(true);
-  };
-
-  // Handles filter hover and click events
-  const handleInitiatedSwapHover = () => {
-    setShowInitiatedSwaps('initiated');
   };
 
   const handleInitiatedSwapClick = (filter: 'regular' | 'open') => {
@@ -1109,7 +1102,7 @@ const handleApprove = async (swapId: number) => {
                       className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
                       onClick={() => {
                         setShowInitiatedSwaps('initiated');
-                        handleInitiatedSwapClick('regular'); // Default to regular swaps on click
+                        handleInitiatedSwapClick('regular');
                       }}
                     >
                       Initiated Swaps
