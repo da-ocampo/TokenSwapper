@@ -249,7 +249,6 @@ h4 {
   max-width: 250px;
 }
 
-
 @media only screen and (max-width: 1024px) {
   .swapGrid {
     grid-template-columns: 1fr;
@@ -281,6 +280,17 @@ h4 {
   .swapBox {
     width: 100%;
     max-width: 100%;
+  }
+
+  .container, .main-content, .form-group, .swapActions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .form-group input[type="text"], .form-group select, input[type="text"], select {
+    text-align: center;
   }
 }
 
@@ -482,6 +492,21 @@ input[type="text"]:focus, select:focus {
 }
 
 @media only screen and (max-width: 768px) {
+  .toggleButtons {
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    flex-direction: column; 
+    width: 100%; 
+    gap: 1em; 
+  }
+
+  .toggle-button {
+    width: auto;
+    margin: 0 auto;
+    text-align: center;
+  }
+
   .guide-grid {
     grid-template-columns: 1fr;
     gap: 1em;
@@ -530,6 +555,29 @@ input[type="text"]:focus, select:focus {
   }
 
   .swapActions button {
+    margin-top: 1em;
+  }
+
+  .swapContent {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .swapContent p {
+    display: block;
+    text-align: left;
+    margin-bottom: 0.5em;
+  }
+
+  .swapContent span {
+    display: block;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    text-align: left;
+  }
+
+  /* Optional for better spacing on mobile */
+  .swapActions {
     margin-top: 1em;
   }
 
