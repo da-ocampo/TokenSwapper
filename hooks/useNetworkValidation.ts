@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useChainId, useSwitchChain, useAddress } from "@thirdweb-dev/react";
 
+const MAINNET_CHAIN_ID = 1;
 const SEPOLIA_CHAIN_ID = 11155111; // Sepolia chain ID
 
 export const useNetworkValidation = () => {
@@ -9,9 +10,9 @@ export const useNetworkValidation = () => {
   const address = useAddress(); // Hook to get the user's wallet address
 
   useEffect(() => {
-    if (address && chainId !== SEPOLIA_CHAIN_ID) { // Check if wallet is connected and chain ID is not Sepolia
-      switchChain(SEPOLIA_CHAIN_ID); // Switch to Sepolia testnet
-      alert("Please switch to the Sepolia testnet.");
+    if (address && chainId && chainId !== MAINNET_CHAIN_ID && chainId !== SEPOLIA_CHAIN_ID) {
+      switchChain(MAINNET_CHAIN_ID)
+      alert("Please switch to the Ethereum Mainnet or Sepolia testnet.");
     }
   }, [address, chainId, switchChain]);
 };

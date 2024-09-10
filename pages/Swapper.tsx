@@ -1,12 +1,13 @@
 import { NextPage } from 'next';
-import { Web3Button, ConnectWallet, useAddress, useContract, useSigner } from '@thirdweb-dev/react';
+import { Web3Button, ConnectWallet, useAddress, useContract, useSigner, useChain, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect, useCallback } from 'react';
-import { CONTRACT_ADDRESS } from '../const/addresses';
+import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS } from '../const/addresses';
 import styles from '../styles/Home.module.css';
 import Modal from './components/Modal';
 import { BigNumber, ethers } from 'ethers';
+import { useNetworkValidation } from "../hooks/useNetworkValidation";
 
-// Map token type names to corresponding enum values
+// Maps token type names to corresponding enum values
 const tokenTypeMap: Record<string, number> = {
   ETH: 0,
   ERC20: 1,
@@ -15,15 +16,15 @@ const tokenTypeMap: Record<string, number> = {
   ERC1155: 4,
 };
 
-// Convert token type enum value to its name
+// Converts token type enum value to its name
 const tokenTypeEnumToName = (enumValue: number): string =>
   Object.keys(tokenTypeMap).find(key => tokenTypeMap[key] === enumValue) || 'Unknown';
 
-// Abbreviate Ethereum address
+// Abbreviates Ethereum address
 const abbreviateAddress = (address: string) =>
   address ? `${address.substring(0, 8)}...${address.substring(address.length - 4)}` : '';
 
-// Fetch the name of a contract using its address
+// Fetches the name of a contract using its address
 const fetchContractName = async (contractAddress: string, signer: any) => {
   if (contractAddress === ethers.constants.AddressZero) {
     return "ETH";
@@ -37,12 +38,13 @@ const fetchContractName = async (contractAddress: string, signer: any) => {
   }
 };
 
-// Fetch the status of a swap
+// Fetches the status of a swap
 const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
     const { initiatorTokenRequiresApproval, acceptorTokenRequiresApproval, isReadyForSwapping, initiatorNeedsToOwnToken, acceptorNeedsToOwnToken } = swapStatus;
 
+    // Handles different scenarios based on the swap status
     if (swapData.acceptor === '0x0000000000000000000000000000000000000000') {
       if (initiatorNeedsToOwnToken) {
         return { status: 'Not Ready', reason: 'Initiator does not own the token specified in the swap', dotClass: 'not-ready' };
@@ -81,7 +83,7 @@ const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any)
   }
 };
 
-// Fetch the status for open swaps
+// Fetches the status for open swaps (only for initiators)
 const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId: number, swapData: any) => {
   try {
     const swapStatus = await swapContract.call('getSwapStatus', [swapId, swapData]);
@@ -100,7 +102,7 @@ const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId: number
   }
 };
 
-// Render a Web3Button with given action and text
+// Renders a Web3Button with a given action and text
 const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (
   <Web3Button
     className="button"
@@ -112,7 +114,7 @@ const renderWeb3Button = (action: () => void, buttonText: string, contractAddres
   </Web3Button>
 );
 
-// Render balance required for a swap
+// Renders the required info for the swap (if applicable)
 const renderRequiredInfo = (tx: any) => {
   if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
     const { acceptorTokenQuantity, acceptorETHPortion } = tx.data.swap;
@@ -128,171 +130,47 @@ const renderRequiredInfo = (tx: any) => {
   return null;
 };
 
-// Render the swap box UI component
-const renderSwapBox = (
-  tx: any,
-  formState: any,
-  address: string,
-  handleApprove: (swapId: number) => void,
-  handleCompleteSwap: (swapId: number, swapData: any) => void,
-  handleRemoveSwap: (swapId: number, swapData: any) => void,
-  isCompleted: boolean = false,
-  isRemoved: boolean = false,
-  handleViewDetails: (swapData: any) => void
-) => {
-  const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus;
-  const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass;
-
-  const renderActionButton = () => {
-    const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
-
-    if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
-      if (initiator === address) {
-        if (swapStatus === 'Not Ready' && swapReason === 'Initiator must approve token') {
-          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract);
-        }
-
-        if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-        }
-
-        if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-        }
-
-        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-      }
-
-      if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
-        return null;
-      }
-
-      if (acceptor === '0x0000000000000000000000000000000000000000') {
-        return (
-          <>
-            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract)}
-            {swapStatus === 'Ready' && renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS)}
-          </>
-        );
-      }
-    } else {
-      if (swapReason.includes('not own')) {
-        if (initiator === address) {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-        }
-        return null;
-      }
-
-      if (initiator === address) {
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
-          return (
-            <>
-              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
-              {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS)}
-            </>
-          );
-        }
-
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-        }
-
-        if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', CONTRACT_ADDRESS);
-        }
-      }
-
-      if (acceptor === address) {
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
-          return (
-            <>
-              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
-            </>
-          );
-        }
-
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
-          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
-        }
-
-        if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', CONTRACT_ADDRESS);
-        }
-      }
-    }
-  };
-
-  const initiatorAddress = tx.data.swap.initiator === address ? 'You' : abbreviateAddress(tx.data.swap.initiator);
-  const acceptorAddress = tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' ? 'Open Swap' : (tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor));
-
-  return (
-    <div key={tx.data.swapId} className="swapBox">
-      <div className="swapContent">
-        <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
-          <span onClick={() => handleViewDetails(tx.data.swap)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Show Details</span>
-        </p>
-        <p><strong>{tx.swapType}</strong></p>
-        <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
-        <p>{initiatorAddress} ↔ {acceptorAddress}</p>
-        {renderRequiredInfo(tx)}
-        <p>
-          <span className={`status-dot ${dotClass}`}></span>
-          <em><strong>{swapStatus}
-          {swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}
-          {swapStatus === 'Not Ready' && <em>, {tx.swapReason}</em>}</strong></em>
-        </p>
-      </div>
-      {!isCompleted && !isRemoved && (
-        <div className="swapActions">
-          {renderActionButton()}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Enhanced error handling function to map specific Solidity errors to readable messages
+// Enhanced error handling function that maps specific Solidity errors to human-readable messages
 const parseErrorReason = (error: any) => {
   const reason = error?.data?.message || error?.message || '';
 
-  // Map specific error messages to human-readable reasons
-  if (reason.includes('ZeroAddressDisallowed')) return 'ZeroAddressDisallowed  Triggered if the acceptor address is the zero address (0x0000000000000000000000000000000000000000) and the acceptorTokenType is not ERC20 or ERC777.';
-  if (reason.includes('InitiatorNotMatched')) return 'InitiatorNotMatched  Triggered if the msg.sender does not match the _swap.initiator during the initiation of a swap.';
-  if (reason.includes('InitiatorEthPortionNotMatched')) return 'InitiatorEthPortionNotMatched  Triggered if the msg.value does not match _swap.initiatorETHPortion during the initiation of a swap.';
-  if (reason.includes('TwoWayEthPortionsDisallowed')) return 'TwoWayEthPortionsDisallowed  Triggered if both the initiator and the acceptor attempt to include an ETH portion in the swap, which is not allowed.';
-  if (reason.includes('SwapCompleteOrDoesNotExist')) return 'SwapCompleteOrDoesNotExist  Triggered if the swap with the given _swapId does not exist or has already been completed.';
-  if (reason.includes('NotAcceptor')) return 'NotAcceptor  Triggered if msg.sender is not the acceptor address specified in the swap.';
-  if (reason.includes('IncorrectOrMissingAcceptorETH')) return 'IncorrectOrMissingAcceptorETH  Triggered if the ETH portion sent by the acceptor (msg.value) does not match the expected _swap.acceptorETHPortion.';
-  if (reason.includes('NotInitiator')) return 'NotInitiator  Triggered if msg.sender is not the initiator of the swap when trying to remove a swap.';
-  if (reason.includes('EmptyWithdrawDisallowed')) return 'EmptyWithdrawDisallowed  Triggered if the withdraw function is called and the caller (msg.sender) has a zero balance.';
-  if (reason.includes('ZeroAddressSetForValidTokenType')) return 'ZeroAddressSetForValidTokenType  Triggered during validation if an ERC20, ERC721, or ERC1155 contract address is set to the zero address (0x0000000000000000000000000000000000000000).';
-  if (reason.includes('TokenQuantityMissing')) return 'TokenQuantityMissing  Triggered during validation if the token quantity for an ERC20 or ERC1155 swap is set to zero.';
-  if (reason.includes('TokenIdMissing')) return 'TokenIdMissing  Triggered during validation if the token ID for an ERC721 or ERC1155 swap is set to zero.';
-  if (reason.includes('ValueOrTokenMissing')) return 'ValueOrTokenMissing  Triggered during validation if both the ETH portion and the token information are missing for a swap.';
-  if (reason.includes('TokenTransferFailed')) return 'TokenTransferFailed  Triggered if the transfer of an ERC20 token fails.';
-  if (reason.includes('NoReentry')) return 'NoReentry  Triggered if a reentrant call is detected.';
-  if (reason.includes('ETHSendingFailed')) return 'ETHSendingFailed  Triggered if the contract fails to send ETH to the msg.sender during withdrawal.';
+  // Maps specific error messages to human-readable reasons
+  if (reason.includes('ZeroAddressDisallowed')) return 'ZeroAddressDisallowed: Accepting zero address is disallowed unless it is an ERC20 or ERC777 token.';
+  if (reason.includes('InitiatorNotMatched')) return 'InitiatorNotMatched: The sender is not the initiator of the swap.';
+  if (reason.includes('InitiatorEthPortionNotMatched')) return 'InitiatorEthPortionNotMatched: ETH portion does not match the required amount for the initiator.';
+  if (reason.includes('TwoWayEthPortionsDisallowed')) return 'TwoWayEthPortionsDisallowed: Both parties cannot contribute ETH to the swap.';
+  if (reason.includes('SwapCompleteOrDoesNotExist')) return 'SwapCompleteOrDoesNotExist: The swap is either complete or does not exist.';
+  if (reason.includes('NotAcceptor')) return 'NotAcceptor: The sender is not the designated acceptor of the swap.';
+  if (reason.includes('IncorrectOrMissingAcceptorETH')) return 'IncorrectOrMissingAcceptorETH: The ETH portion sent by the acceptor does not match the required amount.';
+  if (reason.includes('NotInitiator')) return 'NotInitiator: The sender is not the initiator of the swap when trying to remove it.';
+  if (reason.includes('EmptyWithdrawDisallowed')) return 'EmptyWithdrawDisallowed: No balance available to withdraw.';
+  if (reason.includes('ZeroAddressSetForValidTokenType')) return 'ZeroAddressSetForValidTokenType: A zero address is used for an ERC20, ERC721, or ERC1155 token, which is invalid.';
+  if (reason.includes('TokenQuantityMissing')) return 'TokenQuantityMissing: No token quantity specified for ERC20 or ERC1155 tokens.';
+  if (reason.includes('TokenIdMissing')) return 'TokenIdMissing: No token ID specified for ERC721 or ERC1155 tokens.';
+  if (reason.includes('ValueOrTokenMissing')) return 'ValueOrTokenMissing: Both ETH and token information are missing for the swap.';
+  if (reason.includes('TokenTransferFailed')) return 'TokenTransferFailed: Token transfer failed.';
+  if (reason.includes('NoReentry')) return 'NoReentry: Reentrancy detected.';
+  if (reason.includes('ETHSendingFailed')) return 'ETHSendingFailed: Contract failed to send ETH.';
 
   // General Solidity Errors
-  if (reason.includes('user rejected transaction')) return 'User rejected the transaction';
-  if (reason.includes('out of gas')) return 'Out of Gas  Occurs if a transaction runs out of gas before completion.';
-  if (reason.includes('invalid opcode')) return 'Invalid Opcode  Occurs if the EVM encounters an invalid operation code.';
-  if (reason.includes('stack too deep')) return 'Stack Too Deep  Occurs if there are too many local variables within a single function or in the contract scope.';
-  if (reason.includes('revert')) return 'Revert  Occurs when the contract explicitly triggers a revert without a custom error message.';
-  if (reason.includes('assert')) return 'Assert  Occurs when an assert statement fails; this typically indicates a bug.';
+  if (reason.includes('user rejected transaction')) return 'User rejected the transaction.';
+  if (reason.includes('out of gas')) return 'Out of Gas: The transaction ran out of gas.';
+  if (reason.includes('invalid opcode')) return 'Invalid Opcode: Invalid operation encountered during transaction.';
+  if (reason.includes('stack too deep')) return 'Stack Too Deep: Too many variables in scope.';
+  if (reason.includes('revert')) return 'Revert: Transaction reverted due to an error.';
+  if (reason.includes('assert')) return 'Assert: Assertion failed. This typically indicates a bug in the contract.';
 
   // Insufficient Funds or Permissions
-  if (reason.includes('insufficient funds for gas * price + value')) return 'Insufficient Funds  Triggered if the sender does not have enough ETH to cover the gas cost and the value being sent.';
-  if (reason.includes('ERC721: transfer caller is not owner nor approved')) return 'ERC721: Transfer Caller is Not Owner Nor Approved  Triggered if a non-owner or non-approved party attempts to transfer an ERC721 token.';
-  if (reason.includes('ERC20: transfer amount exceeds balance')) return 'ERC20: Transfer Amount Exceeds Balance  Triggered if the sender\'s balance is insufficient for the ERC20 token transfer.';
-  if (reason.includes('ERC20: transfer amount exceeds allowance')) return 'ERC20: Transfer Amount Exceeds Allowance  Triggered if the sender\'s allowance is insufficient for the ERC20 token transfer.';
-  if (reason.includes('ERC1155: insufficient balance for transfer')) return 'ERC1155: Insufficient Balance for Transfer  Triggered if the sender’s balance is insufficient for the ERC1155 token transfer.';
+  if (reason.includes('insufficient funds for gas * price + value')) return 'Insufficient Funds: Not enough ETH to cover gas and transaction value.';
+  if (reason.includes('ERC721: transfer caller is not owner nor approved')) return 'ERC721: Transfer caller is not the owner or approved.';
+  if (reason.includes('ERC20: transfer amount exceeds balance')) return 'ERC20: Transfer amount exceeds the available balance.';
+  if (reason.includes('ERC20: transfer amount exceeds allowance')) return 'ERC20: Transfer amount exceeds the allowed limit.';
+  if (reason.includes('ERC1155: insufficient balance for transfer')) return 'ERC1155: Insufficient balance for the transfer.';
 
   // Contract Deployment and Interaction Errors
-  if (reason.includes('constructor out of gas')) return 'Constructor Out of Gas  Occurs if the contract\'s constructor runs out of gas during deployment.';
-  if (reason.includes('unknown contract')) return 'Unknown Contract  Triggered when interacting with a contract at an address that does not have any contract deployed.';
-  if (reason.includes('execution reverted')) return 'Execution Reverted  A general error message indicating that the transaction was reverted due to any of the above reasons or other unforeseen issues.';
+  if (reason.includes('constructor out of gas')) return 'Constructor Out of Gas: Contract constructor ran out of gas during deployment.';
+  if (reason.includes('unknown contract')) return 'Unknown Contract: No contract found at the specified address.';
+  if (reason.includes('execution reverted')) return 'Execution Reverted: Transaction was reverted due to an error.';
 
   // Default fallback
   return 'An unknown error occurred. Please try again.';
@@ -301,7 +179,10 @@ const parseErrorReason = (error: any) => {
 // Main component for the token swapper
 const Swapper: NextPage = () => {
   const address = useAddress();
-  const { contract: swapContract } = useContract(CONTRACT_ADDRESS);
+  const chain = useChain();
+  const chainId = useChainId();
+  const [contractAddress, setContractAddress] = useState<string>('');
+  const { contract: swapContract } = useContract(contractAddress ? contractAddress : undefined);
   const signer = useSigner();
   const [formState, setFormState] = useState<Record<string, any>>({
     initiatorTokenType: 'NONE',
@@ -321,8 +202,166 @@ const Swapper: NextPage = () => {
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
   const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
   const [initiatedSwapFilter, setInitiatedSwapFilter] = useState<'regular' | 'open'>('regular'); // New state for filter
+  
 
-  // Fetch token decimals and set calculated value
+  const MAINNET_CHAIN_ID = 1;
+  const SEPOLIA_CHAIN_ID = 11155111;
+
+  useEffect(() => {
+    if (chainId) {
+      if (chainId === MAINNET_CHAIN_ID) {
+        console.log('Mainnet chain detected, using MAINNET_CONTRACT_ADDRESS');
+        setContractAddress(MAINNET_CONTRACT_ADDRESS);
+      } else if (chainId === SEPOLIA_CHAIN_ID) {
+        console.log('Sepolia chain detected, using SEPOLIA_CONTRACT_ADDRESS');
+        setContractAddress(SEPOLIA_CONTRACT_ADDRESS);
+      } else {
+        console.log('Unsupported chain detected, contract address is cleared');
+        setContractAddress('');
+      }
+      // Clear all transaction data when switching networks
+      setInitiatedTransactions([]);
+      setToAcceptTransactions([]);
+      setOpenTransactions([]);
+      setCompletedTransactions([]);
+      setRemovedTransactions([]);
+    }
+  }, [chainId]);
+
+  // Separate useEffect to handle contract changes
+  useEffect(() => {
+    if (contractAddress) {
+      console.log(`Contract address updated: ${contractAddress}`);
+      // You might want to trigger a re-fetch of data here
+      fetchTransactions();
+    }
+  }, [contractAddress]);
+
+  // Render the swap box UI component
+  const renderSwapBox = (
+    tx: any,
+    formState: any,
+    address: string,
+    handleApprove: (swapId: number) => void,
+    handleCompleteSwap: (swapId: number, swapData: any) => void,
+    handleRemoveSwap: (swapId: number, swapData: any) => void,
+    isCompleted: boolean = false,
+    isRemoved: boolean = false,
+    handleViewDetails: (swapData: any) => void
+  ) => {
+    const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus;
+    const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass;
+
+    const renderActionButton = () => {
+      const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
+
+      if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
+        if (initiator === address) {
+          if (swapStatus === 'Not Ready' && swapReason === 'Initiator must approve token') {
+            return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract);
+          }
+
+          if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+
+          if (swapStatus === 'Ready') {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+
+          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+        }
+
+        if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
+          return null;
+        }
+
+        if (acceptor === '0x0000000000000000000000000000000000000000') {
+          return (
+            <>
+              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract)}
+              {swapStatus === 'Ready' && renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', contractAddress)}
+            </>
+          );
+        }
+      } else {
+        if (swapReason.includes('not own')) {
+          if (initiator === address) {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+          return null;
+        }
+
+        if (initiator === address) {
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
+            return (
+              <>
+                {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
+                {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress)}
+              </>
+            );
+          }
+
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+
+          if (swapStatus === 'Ready') {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+        }
+
+        if (acceptor === address) {
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
+            return (
+              <>
+                {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
+              </>
+            );
+          }
+
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
+            return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
+          }
+
+          if (swapStatus === 'Ready') {
+            return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', contractAddress);
+          }
+        }
+      }
+    };
+
+    const initiatorAddress = tx.data.swap.initiator === address ? 'You' : abbreviateAddress(tx.data.swap.initiator);
+    const acceptorAddress = tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' ? 'Open Swap' : (tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor));
+
+    return (
+      <div key={tx.data.swapId} className="swapBox">
+        <div className="swapContent">
+          <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
+            <span onClick={() => handleViewDetails(tx.data.swap)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Show Details</span>
+          </p>
+          <p><strong>{tx.swapType}</strong></p>
+          <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
+          <p>{initiatorAddress} ↔ {acceptorAddress}</p>
+          {renderRequiredInfo(tx)}
+          <p>
+            <span className={`status-dot ${dotClass}`}></span>
+            <em><strong>{swapStatus}
+            {swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}
+            {swapStatus === 'Not Ready' && <em>, {tx.swapReason}</em>}</strong></em>
+          </p>
+        </div>
+        {!isCompleted && !isRemoved && (
+          <div className="swapActions">
+            {renderActionButton()}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Fetches token decimals and calculates value
   const fetchTokenDecimals = useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
     const tokenType = formState[`${side}TokenType`];
 
@@ -350,7 +389,7 @@ const Swapper: NextPage = () => {
     }
   }, [formState, signer]);
 
-  // Handle changes in ERC contract
+  // Handles ERC contract changes
   const handleERCContractChange = async (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}ERCContract`]: value }));
     if (value) {
@@ -361,7 +400,7 @@ const Swapper: NextPage = () => {
     }
   };
 
-  // Handle changes in token quantity
+  // Handles token quantity changes
   const handleTokenQuantityChange = (value: string, side: 'initiator' | 'acceptor') => {
     setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
     const decimals = tokenDecimals[side];
@@ -373,9 +412,11 @@ const Swapper: NextPage = () => {
     }
   };
 
-  // Fetch all swap transactions
+  // Fetches all swap transactions
   const fetchTransactions = useCallback(async () => {
-    if (swapContract && signer && address) {
+    if (swapContract && signer && address && 
+        ((chainId === MAINNET_CHAIN_ID && contractAddress === MAINNET_CONTRACT_ADDRESS) ||
+         (chainId === SEPOLIA_CHAIN_ID && contractAddress === SEPOLIA_CONTRACT_ADDRESS))) {
       try {
         const events = await swapContract.events.getAllEvents();
 
@@ -472,32 +513,39 @@ const Swapper: NextPage = () => {
         console.error('Error fetching transactions:', error);
         setFormState(prevState => ({ ...prevState, modalMessage: 'Error fetching transactions. Please try again.' }));
       }
+    } else {
+      // Clear all transaction data if the conditions are not met
+      setInitiatedTransactions([]);
+      setToAcceptTransactions([]);
+      setOpenTransactions([]);
+      setCompletedTransactions([]);
+      setRemovedTransactions([]);
     }
-  }, [swapContract, signer, address]);
+  }, [swapContract, signer, address, chainId, contractAddress]);
 
-  // Periodically fetch transactions
+  // Periodically fetches transactions
   useEffect(() => {
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
   }, [fetchTransactions]);
 
-  // Fetch transactions when the user connects their wallet
+  // Fetches transactions when the user connects their wallet
   useEffect(() => {
     if (address) {
       fetchTransactions();
     }
   }, [address, fetchTransactions]);
 
-  // Fetch token decimals when contract addresses change
+  // Fetches token decimals when contract addresses change
   useEffect(() => {
     if (formState.initiatorERCContract) fetchTokenDecimals(formState.initiatorERCContract, 'initiator');
     if (formState.acceptorERCContract) fetchTokenDecimals(formState.acceptorERCContract, 'acceptor');
   }, [formState.initiatorERCContract, formState.acceptorERCContract, fetchTokenDecimals]);
 
-  // Map token type name to its enum value
+  // Maps token type name to its enum value
   const mapTokenTypeToEnum = (tokenType: string): number => tokenTypeMap[tokenType] || 0;
 
-  // Parse swap data to be passed to the contract
+  // Parses swap data to be passed to the contract
   const parseSwapData = (data: any[]): any[] =>
     data.map(value => {
       if (typeof value === 'string' && value.startsWith('0x')) return value;
@@ -507,7 +555,7 @@ const Swapper: NextPage = () => {
       return value;
     });
 
-  // Handle initiating a new swap
+  // Handles initiating a new swap
   const handleSwap = async () => {
     const {
       acceptorAddress,
@@ -523,8 +571,14 @@ const Swapper: NextPage = () => {
       acceptorTokenId,
     } = formState;
 
-    if (!address || !swapContract) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+    if (!address || !swapContract || !contractAddress) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+      return;
+    }
+  
+    if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
+        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS)) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
       return;
     }
 
@@ -588,8 +642,14 @@ const Swapper: NextPage = () => {
   };
 
   const handleCompleteSwap = async (swapId: number, swapData: any) => {
-    if (!address || !swapContract) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+    if (!address || !swapContract || !contractAddress) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+      return;
+    }
+  
+    if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
+        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS)) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
       return;
     }
   
@@ -625,10 +685,16 @@ const Swapper: NextPage = () => {
   };
   
 
-  // Handle removing a swap
+  // Handles removing a swap
   const handleRemoveSwap = async (swapId: number, swapData: any) => {
-    if (!address || !swapContract) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected or contract not found.' }));
+    if (!address || !swapContract || !contractAddress) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+      return;
+    }
+  
+    if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
+        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS)) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
       return;
     }
 
@@ -649,16 +715,19 @@ const Swapper: NextPage = () => {
     }
   };
 
-// Handle token approval
+// Handles token approval
 const handleApprove = async (swapId: number) => {
   const form = formState[swapId.toString()];
   const { approveContractAddress, approveTokenId, approveTokenQuantity } = form || {};
 
-  if (!address || !approveContractAddress) {
-    setFormState(prevState => ({
-      ...prevState,
-      modalMessage: 'Wallet not connected or approval contract not found.',
-    }));
+  if (!address || !approveContractAddress || !swapContract || !contractAddress) {
+    setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+    return;
+  }
+
+  if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
+      (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS)) {
+    setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
     return;
   }
 
@@ -673,7 +742,7 @@ const handleApprove = async (swapId: number) => {
       approvalAmount = ethers.BigNumber.from(approveTokenId);
     }
 
-    const tx = await approveContract.approve(CONTRACT_ADDRESS, approvalAmount);
+    const tx = await approveContract.approve(contractAddress, approvalAmount);
 
     const provider = approveContract.provider;
     provider.once(tx.hash, () => {
@@ -686,14 +755,14 @@ const handleApprove = async (swapId: number) => {
 };
 
 
-  // Close the modal
+  // Closes the modal
   const closeModal = () => {
     setShowModal(false);
     setFormState(prevState => ({ ...prevState, modalMessage: null }));
     setModalData(null);
   };
 
-  // Show details of a swap
+  // Shows details of a swap
   const handleViewDetails = (swapData: any) => {
     const parsedData = {
       ...swapData,
@@ -708,7 +777,7 @@ const handleApprove = async (swapId: number) => {
     setShowModal(true);
   };
 
-  // Handle filter hover and click events
+  // Handles filter hover and click events
   const handleInitiatedSwapHover = () => {
     setShowInitiatedSwaps('initiated');
   };
@@ -749,6 +818,13 @@ const handleApprove = async (swapId: number) => {
                   <li className="navItem">
                     <span className="wallet-address">
                       {abbreviateAddress(address)}
+                    </span>
+                  </li>
+                  <li className="navItem">
+                    <span className="network-info">
+                      {chainId === MAINNET_CHAIN_ID ? 'Ethereum Mainnet' : 
+                      chainId === SEPOLIA_CHAIN_ID ? 'Sepolia Testnet' : 
+                      'Unsupported Network'}
                     </span>
                   </li>
                 </>
@@ -876,7 +952,6 @@ const handleApprove = async (swapId: number) => {
                         </div>
                         {formState.initiatorETHPortion && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                            <p><em>Token Decimals: 18</em></p>
                             <p><em>Wei: {ethers.utils.parseEther(formState.initiatorETHPortion).toString()}</em></p>
                             <p><em>Gwei: {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
                           </div>
@@ -994,7 +1069,6 @@ const handleApprove = async (swapId: number) => {
                         </div>
                         {formState.acceptorETHPortion && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-                            <p><em>Token Decimals: 18</em></p>
                             <p><em>Wei: {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
                             <p><em>Gwei: {ethers.utils.parseUnits(formState.acceptorETHPortion, 'gwei').toString()}</em></p>
                           </div>
@@ -1003,7 +1077,7 @@ const handleApprove = async (swapId: number) => {
                     </div>
                     <Web3Button
                       className="button"
-                      contractAddress={CONTRACT_ADDRESS}
+                      contractAddress={contractAddress}
                       action={handleSwap}
                       isDisabled={!address}
                     >
@@ -1025,33 +1099,15 @@ const handleApprove = async (swapId: number) => {
               {address && (
                 <div className="swapGrid">
                   <div className="toggleButtons">
-                  <div className="initiated-swap-wrapper" style={{ display: 'inline-block', position: 'relative' }}>
-                      <button
-                        className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
-                        onClick={() => {
-                          setShowInitiatedSwaps('initiated');
-                          handleInitiatedSwapClick('regular'); // Default to regular swaps on click
-                        }}
-                      >
-                        Initiated Swaps
-                      </button>
-                      {showInitiatedSwaps === 'initiated' && (
-                        <div className="initiated-swap-filters" style={{ display: 'flex', position: 'absolute', top: 0, left: '100%' }}>
-                          <button
-                            className={`toggle-button ${initiatedSwapFilter === 'regular' ? 'active' : ''}`}
-                            onClick={() => handleInitiatedSwapClick('regular')}
-                          >
-                            Regular Swaps
-                          </button>
-                          <button
-                            className={`toggle-button ${initiatedSwapFilter === 'open' ? 'active' : ''}`}
-                            onClick={() => handleInitiatedSwapClick('open')}
-                          >
-                            Open Swaps
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      className={`toggle-button ${showInitiatedSwaps === 'initiated' ? 'active' : ''}`}
+                      onClick={() => {
+                        setShowInitiatedSwaps('initiated');
+                        handleInitiatedSwapClick('regular'); // Default to regular swaps on click
+                      }}
+                    >
+                      Initiated Swaps
+                    </button>
                     <button
                       className={`toggle-button ${showInitiatedSwaps === 'toAccept' ? 'active' : ''}`}
                       onClick={() => setShowInitiatedSwaps('toAccept')}
@@ -1087,22 +1143,38 @@ const handleApprove = async (swapId: number) => {
                   </div>
                   <div className="swapContainer">
                     {showInitiatedSwaps === 'initiated' && (
-                      initiatedSwapFilter === 'regular' ? (
-                        initiatedTransactions.length === 0 ? (
-                          <div>
-                            <p style={{ textAlign: 'center', marginBottom: '1em' }}>No transactions found.</p>
-                            <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
-                          </div>
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1em', width: "16em" }}>
+                          <button
+                            className={`toggle-button ${initiatedSwapFilter === 'regular' ? 'active' : ''}`}
+                            onClick={() => handleInitiatedSwapClick('regular')}
+                          >
+                            Regular Swaps
+                          </button>
+                          <button
+                            className={`toggle-button ${initiatedSwapFilter === 'open' ? 'active' : ''}`}
+                            onClick={() => handleInitiatedSwapClick('open')}
+                          >
+                            Open Swaps
+                          </button>
+                        </div>
+                        {initiatedSwapFilter === 'regular' ? (
+                          initiatedTransactions.length === 0 ? (
+                            <div>
+                              <p style={{ textAlign: 'center', marginBottom: '1em' }}>No transactions found.</p>
+                              <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
+                            </div>
+                          ) : (
+                            initiatedTransactions
+                              .filter(tx => tx.data.swap.acceptor !== '0x0000000000000000000000000000000000000000')
+                              .map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
+                          )
                         ) : (
                           initiatedTransactions
-                            .filter(tx => tx.data.swap.acceptor !== '0x0000000000000000000000000000000000000000')
+                            .filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000')
                             .map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                        )
-                      ) : (
-                        initiatedTransactions
-                          .filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000')
-                          .map(tx => renderSwapBox(tx, formState, address, handleApprove, handleCompleteSwap, handleRemoveSwap, false, false, handleViewDetails))
-                      )
+                        )}
+                      </>
                     )}
                     {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
                       <p>No transactions found.</p>

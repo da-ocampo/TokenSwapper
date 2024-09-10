@@ -1,21 +1,37 @@
 import { NextPage } from 'next';
-import { useAddress, useContract, useDisconnect, useMetamask } from '@thirdweb-dev/react';
+import { useAddress, useContract, useDisconnect, useMetamask, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
-import { CONTRACT_ADDRESS } from '../const/addresses';
+import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS } from '../const/addresses';
 import Modal from './components/Modal';
 import Swapper from './Swapper';
 import styles from '../styles/Home.module.css';
 import { useNetworkValidation } from "../hooks/useNetworkValidation";
 
+// Define chain IDs
+const MAINNET_CHAIN_ID = 1;
+const SEPOLIA_CHAIN_ID = 11155111;
+
 const Home: NextPage = () => {
   useNetworkValidation();
-
   const address = useAddress();
   const disconnect = useDisconnect();
   const connectWithMetamask = useMetamask();
-  const { contract, isLoading, error } = useContract(CONTRACT_ADDRESS);
+  const chainId = useChainId();
+  
+  const [contractAddress, setContractAddress] = useState(MAINNET_CONTRACT_ADDRESS);
+  const { contract, isLoading, error } = useContract(contractAddress);
+  
   const [walletConnected, setWalletConnected] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [networkMessage, setNetworkMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (chainId === SEPOLIA_CHAIN_ID) {
+      setContractAddress(SEPOLIA_CONTRACT_ADDRESS);
+    } else {
+      setContractAddress(MAINNET_CONTRACT_ADDRESS);
+    }
+  }, [chainId]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -30,7 +46,6 @@ const Home: NextPage = () => {
         setWalletConnected(false);
       }
     };
-
     if (!isLoading && !error) {
       checkStatus();
     }
@@ -48,11 +63,9 @@ const Home: NextPage = () => {
         }
       }
     };
-
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     }
-
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);

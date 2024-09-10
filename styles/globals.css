@@ -217,7 +217,6 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 1em;
-  padding-left: 6em;
 }
 
 .info-icon {
