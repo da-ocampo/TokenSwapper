@@ -492,6 +492,20 @@ input[type="text"]:focus, select:focus {
 }
 
 @media only screen and (max-width: 768px) {
+  .modal {
+    width: 90%;
+    padding: 1em;
+    max-height: 90%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .modal button {
+    width: 100%;
+    padding: 1em;
+  }
+  
   .toggleButtons {
     display: flex;
     justify-content: center;
