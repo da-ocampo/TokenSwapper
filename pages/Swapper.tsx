@@ -185,10 +185,12 @@ const Swapper: NextPage = () => {
   const { contract: swapContract } = useContract(contractAddress ? contractAddress : undefined);
   const signer = useSigner();
   const [formState, setFormState] = useState<Record<string, any>>({
+    acceptorAddress: '',
     initiatorTokenType: 'NONE',
     initiatorERCContract: ethers.constants.AddressZero,
     acceptorTokenType: 'NONE',
     acceptorERCContract: ethers.constants.AddressZero,
+    expiryDate: '',
   });
   const [initiatedTransactions, setInitiatedTransactions] = useState<any[]>([]);
   const [toAcceptTransactions, setToAcceptTransactions] = useState<any[]>([]);
@@ -249,9 +251,14 @@ const Swapper: NextPage = () => {
   ) => {
     const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus;
     const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass;
+    const isExpired = isSwapExpired(tx.data.swap.expiryDate);
 
     const renderActionButton = () => {
       const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
+
+      if (isExpired) {
+        return null;
+      }
 
       if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
         if (initiator === address) {
@@ -333,7 +340,7 @@ const Swapper: NextPage = () => {
     const acceptorAddress = tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' ? 'Open Swap' : (tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor));
 
     return (
-      <div key={tx.data.swapId} className="swapBox">
+      <div key={tx.data.swapId} className={`swapBox ${isExpired ? 'expired' : ''}`}>
         <div className="swapContent">
           <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>{tx.initiatorContractName} ↔ {tx.acceptorContractName}</strong>
@@ -356,7 +363,10 @@ const Swapper: NextPage = () => {
           {renderRequiredInfo(tx)}
 
         </div>
-        {!isCompleted && !isRemoved && (
+
+        <p><strong>{isExpired ? "Expired:" : "Expires:"}</strong> {new Date(tx.data.swap.expiryDate * 1000).toLocaleString()}</p>
+
+        {!isCompleted && !isRemoved && !isExpired && (
           <div className="swapActions">
             {renderActionButton()}
           </div>
@@ -431,8 +441,12 @@ const Swapper: NextPage = () => {
         const removedSwapIds = new Set(swapRemovedEvents.map(event => event.data.swapId.toString()));
         const completedSwapIds = new Set(swapCompletedEvents.map(event => event.data.swapId.toString()));
 
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+
         const filteredInitiatedEvents = swapInitiatedEvents.filter(
-          event => !removedSwapIds.has(event.data.swapId.toString()) && !completedSwapIds.has(event.data.swapId.toString())
+          event => !removedSwapIds.has(event.data.swapId.toString()) && 
+                   !completedSwapIds.has(event.data.swapId.toString()) &&
+                   event.data.swap.expiryDate > currentTimestamp
         );
 
         const fetchNames = async (events: any[]) =>
@@ -508,11 +522,19 @@ const Swapper: NextPage = () => {
           }));
         }
 
+        const expiredTransactions = swapInitiatedEvents.filter(
+          event => !removedSwapIds.has(event.data.swapId.toString()) && 
+                   !completedSwapIds.has(event.data.swapId.toString()) &&
+                   event.data.swap.expiryDate <= currentTimestamp
+        );
+
+        const expiredTransactionsWithNames = await fetchNames(expiredTransactions);
+
         setInitiatedTransactions(initiatedTransactionsWithNames);
         setToAcceptTransactions(toAcceptTransactionsWithNames);
         setOpenTransactions(openTransactionsWithNames);
         setCompletedTransactions(completedTransactionsWithNames);
-        setRemovedTransactions(removedTransactionsWithNames);
+        setRemovedTransactions([...removedTransactionsWithNames, ...expiredTransactionsWithNames]);
       } catch (error) {
         console.error('Error fetching transactions:', error);
         setFormState(prevState => ({ ...prevState, modalMessage: 'Error fetching transactions. Please try again.' }));
@@ -559,6 +581,10 @@ const Swapper: NextPage = () => {
       return value;
     });
 
+  const isSwapExpired = (expiryDate: number) => {
+    return expiryDate < Math.floor(Date.now() / 1000);
+  };
+
   // Handles initiating a new swap
   const handleSwap = async () => {
     const {
@@ -573,6 +599,7 @@ const Swapper: NextPage = () => {
       acceptorETHPortion,
       initiatorTokenId,
       acceptorTokenId,
+      expiryDate,
     } = formState;
 
     if (!address || !swapContract || !contractAddress) {
@@ -603,6 +630,7 @@ const Swapper: NextPage = () => {
           acceptorTokenId: parseInt(acceptorTokenId) || 0,
           acceptorTokenQuantity: parseInt(acceptorTokenQuantity) || 0,
           acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'),
+          expiryDate: Math.floor(new Date(expiryDate).getTime() / 1000), // Convert to Unix timestamp
         },
       ], {
         value: ethers.utils.parseEther(initiatorETHPortion || '0'),
@@ -776,6 +804,7 @@ const handleApprove = async (swapId: number) => {
       acceptorTokenQuantity: BigNumber.isBigNumber(swapData.acceptorTokenQuantity) ? swapData.acceptorTokenQuantity.toString() : swapData.acceptorTokenQuantity,
       initiatorETHPortion: BigNumber.isBigNumber(swapData.initiatorETHPortion) ? ethers.utils.formatEther(swapData.initiatorETHPortion) : swapData.initiatorETHPortion,
       acceptorETHPortion: BigNumber.isBigNumber(swapData.acceptorETHPortion) ? ethers.utils.formatEther(swapData.acceptorETHPortion) : swapData.acceptorETHPortion,
+      expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(), // Convert Unix timestamp to readable date
     };
     setModalData(parsedData);
     setShowModal(true);
@@ -955,6 +984,16 @@ const handleApprove = async (swapId: number) => {
                             <p><em>Gwei: {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
                           </div>
                         )}
+                        <div className="form-group">
+                          <label htmlFor="expiryDate">Expiry Date:</label>
+                          <input
+                            type="datetime-local"
+                            name="expiryDate"
+                            value={formState.expiryDate}
+                            onChange={(e) => setFormState({ ...formState, expiryDate: e.target.value })}
+                            min={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
                       </div>
                       <div>
                         <h4>Acceptor Information:</h4>
@@ -1204,23 +1243,24 @@ const handleApprove = async (swapId: number) => {
       </div>
       {formState.modalMessage && <Modal message={formState.modalMessage} onClose={closeModal} />}
       {showModal && modalData && (
-        <Modal onClose={closeModal}>
-          <h3>Swap Details</h3>
-          <div style={{ textAlign: 'left' }}>
-            <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
-            <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
-            <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorERCContract}</p>
-            <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorERCContract}</p>
-            <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenId}</p>
-            <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenId}</p>
-            <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenQuantity}</p>
-            <p><strong>Acceptor Token Quantity:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenQuantity}</p>
-            <p><strong>Initiator ETH Portion:</strong> {modalData.initiatorETHPortion}</p>
-            <p><strong>Acceptor ETH Portion:</strong> {modalData.acceptorETHPortion}</p>
-            <p><strong>Initiator Token Type:</strong> {tokenTypeEnumToName(modalData.initiatorTokenType)}</p>
-            <p><strong>Acceptor Token Type:</strong> {tokenTypeEnumToName(modalData.acceptorTokenType)}</p>
-          </div>
-        </Modal>
+      <Modal onClose={closeModal}>
+        <h3>Swap Details</h3>
+        <div style={{ textAlign: 'left' }}>
+          <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
+          <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
+          <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorERCContract}</p>
+          <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorERCContract}</p>
+          <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenId}</p>
+          <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenId}</p>
+          <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenQuantity}</p>
+          <p><strong>Acceptor Token Quantity:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenQuantity}</p>
+          <p><strong>Initiator ETH Portion:</strong> {modalData.initiatorETHPortion}</p>
+          <p><strong>Acceptor ETH Portion:</strong> {modalData.acceptorETHPortion}</p>
+          <p><strong>Initiator Token Type:</strong> {tokenTypeEnumToName(modalData.initiatorTokenType)}</p>
+          <p><strong>Acceptor Token Type:</strong> {tokenTypeEnumToName(modalData.acceptorTokenType)}</p>
+          <p><strong>Expiration Date:</strong> {modalData.expiryDate}</p>
+        </div>
+      </Modal>
       )}
     </div>
   );
