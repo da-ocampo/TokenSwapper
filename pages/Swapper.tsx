@@ -198,7 +198,8 @@ const Swapper: NextPage = () => {
   const [completedTransactions, setCompletedTransactions] = useState<any[]>([]);
   const [removedTransactions, setRemovedTransactions] = useState<any[]>([]);
   const [showInitiatedSwaps, setShowInitiatedSwaps] = useState<'initiated' | 'toAccept' | 'completed' | 'removed' | 'open'>('initiated');
-  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList'>('swapList');
+  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet'>('swapList');
+  const [walletBalance, setWalletBalance] = useState<string>('0');  
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
@@ -375,6 +376,41 @@ const Swapper: NextPage = () => {
     );
   };
 
+  const fetchWalletBalance = useCallback(async () => {
+    if (swapContract && address) {
+      try {
+        const balance = await swapContract.call('balances', [address]);
+        setWalletBalance(ethers.utils.formatEther(balance));
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        setWalletBalance('Error');
+      }
+    }
+  }, [swapContract, address]);
+
+  useEffect(() => {
+    if (currentPage === 'wallet') {
+      fetchWalletBalance();
+    }
+  }, [currentPage, fetchWalletBalance]);
+
+  const handleWithdraw = async () => {
+    if (!address || !swapContract || !contractAddress) {
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+      return;
+    }
+
+    try {
+      await swapContract.call('withdraw');
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Withdrawal successful!' }));
+      fetchWalletBalance(); // Refresh the balance after withdrawal
+    } catch (error) {
+      console.error('Error withdrawing:', error);
+      const reason = parseErrorReason(error);
+      setFormState(prevState => ({ ...prevState, modalMessage: `Error withdrawing. ${reason}` }));
+    }
+  };
+
   // Fetches token decimals and calculates value
   const fetchTokenDecimals = useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
     const tokenType = formState[`${side}TokenType`];
@@ -414,15 +450,31 @@ const Swapper: NextPage = () => {
     }
   };
 
-  // Handles token quantity changes
+  const isValidNumber = (value: string) => {
+    return /^\d*\.?\d*$/.test(value);
+  };
+
   const handleTokenQuantityChange = (value: string, side: 'initiator' | 'acceptor') => {
-    setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
-    const decimals = tokenDecimals[side];
-    if (value && decimals > 0) {
-      const calculated = ethers.utils.formatUnits(value, decimals);
-      setCalculatedValue(prevValues => ({ ...prevValues, [side]: calculated }));
-    } else {
-      setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
+    if (isValidNumber(value)) {
+      setFormState(prevState => ({ ...prevState, [`${side}TokenQuantity`]: value }));
+      const decimals = tokenDecimals[side] || 18;
+      if (value) {
+        try {
+          const bigNumberValue = ethers.utils.parseUnits(value, decimals);
+          setCalculatedValue(prevValues => ({ ...prevValues, [side]: ethers.utils.formatUnits(bigNumberValue, decimals) }));
+        } catch (error) {
+          console.error('Error parsing token quantity:', error);
+          setCalculatedValue(prevValues => ({ ...prevValues, [side]: 'Invalid input' }));
+        }
+      } else {
+        setCalculatedValue(prevValues => ({ ...prevValues, [side]: '' }));
+      }
+    }
+  };
+
+  const handleETHPortionChange = (value: string, side: 'initiator' | 'acceptor') => {
+    if (isValidNumber(value)) {
+      setFormState(prevState => ({ ...prevState, [`${side}ETHPortion`]: value }));
     }
   };
 
@@ -616,6 +668,9 @@ const Swapper: NextPage = () => {
     const finalAcceptorAddress = acceptorAddress || '0x0000000000000000000000000000000000000000';
 
     try {
+      const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
+      const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
+
       const tx = await swapContract.call('initiateSwap', [
         {
           initiator: address,
@@ -623,14 +678,14 @@ const Swapper: NextPage = () => {
           initiatorTokenType: mapTokenTypeToEnum(initiatorTokenType),
           initiatorERCContract: initiatorTokenType === 'NONE' ? ethers.constants.AddressZero : initiatorERCContract,
           initiatorTokenId: parseInt(initiatorTokenId) || 0,
-          initiatorTokenQuantity: parseInt(initiatorTokenQuantity) || 0,
+          initiatorTokenQuantity: ethers.utils.parseUnits(initiatorTokenQuantity || '0', initiatorTokenDecimals).toString(),
           initiatorETHPortion: ethers.utils.parseEther(initiatorETHPortion || '0'),
           acceptorTokenType: mapTokenTypeToEnum(acceptorTokenType),
           acceptorERCContract: acceptorTokenType === 'NONE' ? ethers.constants.AddressZero : acceptorERCContract,
           acceptorTokenId: parseInt(acceptorTokenId) || 0,
-          acceptorTokenQuantity: parseInt(acceptorTokenQuantity) || 0,
+          acceptorTokenQuantity: ethers.utils.parseUnits(acceptorTokenQuantity || '0', acceptorTokenDecimals).toString(),
           acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'),
-          expiryDate: Math.floor(new Date(expiryDate).getTime() / 1000), // Convert to Unix timestamp
+          expiryDate: Math.floor(new Date(expiryDate).getTime() / 1000),
         },
       ], {
         value: ethers.utils.parseEther(initiatorETHPortion || '0'),
@@ -764,15 +819,26 @@ const handleApprove = async (swapId: number) => {
   }
 
   try {
-    const approveContract = new ethers.Contract(approveContractAddress, ['function approve(address, uint256)'], signer);
+    const approveContract = new ethers.Contract(approveContractAddress, [
+      'function approve(address, uint256)',
+      'function decimals() view returns (uint8)'
+    ], signer);
     
     let approvalAmount;
 
     if (approveTokenQuantity && parseInt(approveTokenQuantity) > 0) {
-      approvalAmount = ethers.utils.parseUnits(approveTokenQuantity.toString(), 18);
+      try {
+        const decimals = await approveContract.decimals();
+        approvalAmount = ethers.BigNumber.from(approveTokenQuantity);
+      } catch (error) {
+        console.error('Error getting token decimals:', error);
+        approvalAmount = ethers.BigNumber.from(approveTokenQuantity);
+      }
     } else {
-      approvalAmount = ethers.BigNumber.from(approveTokenId);
+      approvalAmount = ethers.BigNumber.from(approveTokenId || '0');
     }
+
+    console.log('Approval amount:', approvalAmount.toString());
 
     const tx = await approveContract.approve(contractAddress, approvalAmount);
 
@@ -786,7 +852,6 @@ const handleApprove = async (swapId: number) => {
   }
 };
 
-
   // Closes the modal
   const closeModal = () => {
     setShowModal(false);
@@ -796,15 +861,22 @@ const handleApprove = async (swapId: number) => {
 
   // Shows details of a swap
   const handleViewDetails = (swapData: any) => {
+    const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
+    const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
+
     const parsedData = {
       ...swapData,
       initiatorTokenId: BigNumber.isBigNumber(swapData.initiatorTokenId) ? swapData.initiatorTokenId.toString() : swapData.initiatorTokenId,
       acceptorTokenId: BigNumber.isBigNumber(swapData.acceptorTokenId) ? swapData.acceptorTokenId.toString() : swapData.acceptorTokenId,
-      initiatorTokenQuantity: BigNumber.isBigNumber(swapData.initiatorTokenQuantity) ? swapData.initiatorTokenQuantity.toString() : swapData.initiatorTokenQuantity,
-      acceptorTokenQuantity: BigNumber.isBigNumber(swapData.acceptorTokenQuantity) ? swapData.acceptorTokenQuantity.toString() : swapData.acceptorTokenQuantity,
+      initiatorTokenQuantity: BigNumber.isBigNumber(swapData.initiatorTokenQuantity) 
+        ? ethers.utils.formatUnits(swapData.initiatorTokenQuantity, initiatorTokenDecimals)
+        : swapData.initiatorTokenQuantity,
+      acceptorTokenQuantity: BigNumber.isBigNumber(swapData.acceptorTokenQuantity) 
+        ? ethers.utils.formatUnits(swapData.acceptorTokenQuantity, acceptorTokenDecimals)
+        : swapData.acceptorTokenQuantity,
       initiatorETHPortion: BigNumber.isBigNumber(swapData.initiatorETHPortion) ? ethers.utils.formatEther(swapData.initiatorETHPortion) : swapData.initiatorETHPortion,
       acceptorETHPortion: BigNumber.isBigNumber(swapData.acceptorETHPortion) ? ethers.utils.formatEther(swapData.acceptorETHPortion) : swapData.acceptorETHPortion,
-      expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(), // Convert Unix timestamp to readable date
+      expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(),
     };
     setModalData(parsedData);
     setShowModal(true);
@@ -817,7 +889,7 @@ const handleApprove = async (swapId: number) => {
   return (
     <div className={styles.main}>
       <div className={styles.container}>
-        <header className="header">
+      <header className="header">
           <div className="title">
             <a href="#">
               <h1>Token Swapper</h1>
@@ -844,6 +916,14 @@ const handleApprove = async (swapId: number) => {
                     </a>
                   </li>
                   <li className="navItem">
+                    <a
+                      className={`toggle-button ${currentPage === 'wallet' ? 'active' : ''}`}
+                      onClick={() => setCurrentPage('wallet')}
+                    >
+                      Wallet
+                    </a>
+                  </li>
+                  <li className="navItem">
                     <span className="wallet-address">
                       {abbreviateAddress(address)}
                     </span>
@@ -858,6 +938,7 @@ const handleApprove = async (swapId: number) => {
                 </>
               ) : (
                 <li className="navItem">
+                  <ConnectWallet />
                 </li>
               )}
             </ul>
@@ -925,7 +1006,7 @@ const handleApprove = async (swapId: number) => {
                                 {formState.initiatorTokenQuantity && (
                                   <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
                                     <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
-                                    <p><em>Actual Token Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
+                                    <p><em>Entered Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
                                   </div>
                                 )}
                               </>
@@ -975,7 +1056,7 @@ const handleApprove = async (swapId: number) => {
                             name="initiatorETHPortion"
                             placeholder="Initiator&apos;s ETH Portion"
                             value={formState.initiatorETHPortion || ''}
-                            onChange={(e) => setFormState({ ...formState, initiatorETHPortion: e.target.value })}
+                            onChange={(e) => handleETHPortionChange(e.target.value, 'initiator')}
                           />
                         </div>
                         {formState.initiatorETHPortion && (
@@ -1052,7 +1133,7 @@ const handleApprove = async (swapId: number) => {
                                 {formState.acceptorTokenQuantity && (
                                   <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
                                     <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
-                                    <p><em>Actual Token Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
+                                    <p><em>Entered Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
                                   </div>
                                 )}
                               </>
@@ -1102,7 +1183,7 @@ const handleApprove = async (swapId: number) => {
                             name="acceptorETHPortion"
                             placeholder="Acceptor&apos;s ETH Portion"
                             value={formState.acceptorETHPortion || ''}
-                            onChange={(e) => setFormState({ ...formState, acceptorETHPortion: e.target.value })}
+                            onChange={(e) => handleETHPortionChange(e.target.value, 'acceptor')}
                           />
                         </div>
                         {formState.acceptorETHPortion && (
@@ -1237,6 +1318,32 @@ const handleApprove = async (swapId: number) => {
                   </div>
                 </div>
               )}
+            </section>
+          )}
+          {currentPage === 'wallet' && (
+            <section id="wallet" style={{ textAlign: 'center', marginBottom: '1em' }}>
+              <div>
+                {!address && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                    <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
+                    <ConnectWallet />
+                  </div>
+                )}
+                {address && (
+                  <div>
+                    <h3>Wallet Balance</h3>
+                    <p>Your current balance: {walletBalance} ETH</p>
+                    <Web3Button
+                      className="button"
+                      contractAddress={contractAddress}
+                      action={handleWithdraw}
+                      isDisabled={!address || parseFloat(walletBalance) === 0}
+                    >
+                      Withdraw
+                    </Web3Button>
+                  </div>
+                )}
+              </div>
             </section>
           )}
         </div>
