@@ -402,7 +402,7 @@ const Swapper: NextPage = () => {
 
     try {
       await swapContract.call('withdraw');
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Withdrawal successful!' }));
+      setFormState(prevState => ({ ...prevState, modalMessage: 'Withdrawal successful! Please check your wallet for the transferred funds.' }));
       fetchWalletBalance(); // Refresh the balance after withdrawal
     } catch (error) {
       console.error('Error withdrawing:', error);
@@ -909,18 +909,18 @@ const handleApprove = async (swapId: number) => {
                   </li>
                   <li className="navItem">
                     <a
-                      className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
-                      onClick={() => setCurrentPage('initSwap')}
-                    >
-                      Start New Swap
-                    </a>
-                  </li>
-                  <li className="navItem">
-                    <a
                       className={`toggle-button ${currentPage === 'wallet' ? 'active' : ''}`}
                       onClick={() => setCurrentPage('wallet')}
                     >
                       Wallet
+                    </a>
+                  </li>
+                  <li className="navItem">
+                    <a
+                      className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
+                      onClick={() => setCurrentPage('initSwap')}
+                    >
+                      Start New Swap
                     </a>
                   </li>
                   <li className="navItem">
@@ -1207,6 +1207,32 @@ const handleApprove = async (swapId: number) => {
               </div>
             </section>
           )}
+          {currentPage === 'wallet' && (
+            <section id="wallet" style={{ textAlign: 'center', marginBottom: '1em' }}>
+              <div>
+                {!address && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                    <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
+                    <ConnectWallet />
+                  </div>
+                )}
+                {address && (
+                  <div>
+                    <h3>Wallet Balance</h3>
+                    <p>Your current balance: {walletBalance} ETH</p>
+                    <Web3Button
+                      className="button"
+                      contractAddress={contractAddress}
+                      action={handleWithdraw}
+                      isDisabled={!address || parseFloat(walletBalance) === 0}
+                    >
+                      Withdraw
+                    </Web3Button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
           {currentPage === 'swapList' && (
             <section id="swapList">
               {!address && (
@@ -1318,32 +1344,6 @@ const handleApprove = async (swapId: number) => {
                   </div>
                 </div>
               )}
-            </section>
-          )}
-          {currentPage === 'wallet' && (
-            <section id="wallet" style={{ textAlign: 'center', marginBottom: '1em' }}>
-              <div>
-                {!address && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
-                    <ConnectWallet />
-                  </div>
-                )}
-                {address && (
-                  <div>
-                    <h3>Wallet Balance</h3>
-                    <p>Your current balance: {walletBalance} ETH</p>
-                    <Web3Button
-                      className="button"
-                      contractAddress={contractAddress}
-                      action={handleWithdraw}
-                      isDisabled={!address || parseFloat(walletBalance) === 0}
-                    >
-                      Withdraw
-                    </Web3Button>
-                  </div>
-                )}
-              </div>
             </section>
           )}
         </div>

@@ -430,8 +430,7 @@ input[type="text"]:focus, select:focus {
 }
 
 .navItem {
-  margin-left: 1em;
-  margin-right: 1em;
+  margin: 0 .5em;
   transition: margin 0.3s;
 }
 
