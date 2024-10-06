@@ -485,22 +485,22 @@ const Swapper: NextPage = () => {
          (chainId === SEPOLIA_CHAIN_ID && contractAddress === SEPOLIA_CONTRACT_ADDRESS))) {
       try {
         const events = await swapContract.events.getAllEvents();
-
+  
         const swapInitiatedEvents = events.filter(event => event.eventName === 'SwapInitiated');
         const swapCompletedEvents = events.filter(event => event.eventName === 'SwapComplete');
         const swapRemovedEvents = events.filter(event => event.eventName === 'SwapRemoved');
-
+  
         const removedSwapIds = new Set(swapRemovedEvents.map(event => event.data.swapId.toString()));
         const completedSwapIds = new Set(swapCompletedEvents.map(event => event.data.swapId.toString()));
-
+  
         const currentTimestamp = Math.floor(Date.now() / 1000);
-
+  
         const filteredInitiatedEvents = swapInitiatedEvents.filter(
           event => !removedSwapIds.has(event.data.swapId.toString()) && 
                    !completedSwapIds.has(event.data.swapId.toString()) &&
                    event.data.swap.expiryDate > currentTimestamp
         );
-
+  
         const fetchNames = async (events: any[]) =>
           Promise.all(
             events.map(async tx => {
@@ -514,7 +514,7 @@ const Swapper: NextPage = () => {
               };
             })
           );
-
+  
         const initiatedTransactionsWithNames = await fetchNames(
           filteredInitiatedEvents.filter(event => event.data.swap.initiator === address)
         );
@@ -527,10 +527,25 @@ const Swapper: NextPage = () => {
           )
         );
         const completedTransactionsWithNames = await fetchNames(swapCompletedEvents.filter(event => event.data.swap.initiator === address || event.data.swap.acceptor === address));
+        
+        // Update this part to filter removed transactions
         const removedTransactionsWithNames = await fetchNames(
-          swapInitiatedEvents.filter(event => removedSwapIds.has(event.data.swapId.toString()) && (event.data.swap.initiator === address || event.data.swap.acceptor === address))
+          swapInitiatedEvents.filter(event => 
+            removedSwapIds.has(event.data.swapId.toString()) && 
+            (event.data.swap.initiator === address || event.data.swap.acceptor === address)
+          )
         );
-
+  
+        // Add expired transactions that involve the connected wallet
+        const expiredTransactions = swapInitiatedEvents.filter(
+          event => !removedSwapIds.has(event.data.swapId.toString()) && 
+                   !completedSwapIds.has(event.data.swapId.toString()) &&
+                   event.data.swap.expiryDate <= currentTimestamp &&
+                   (event.data.swap.initiator === address || event.data.swap.acceptor === address)
+        );
+  
+        const expiredTransactionsWithNames = await fetchNames(expiredTransactions);
+  
         for (const tx of initiatedTransactionsWithNames) {
           const status = await fetchSwapStatus(swapContract, tx.data.swapId, tx.data.swap);
           tx.swapStatus = status.status;
@@ -573,15 +588,7 @@ const Swapper: NextPage = () => {
             }
           }));
         }
-
-        const expiredTransactions = swapInitiatedEvents.filter(
-          event => !removedSwapIds.has(event.data.swapId.toString()) && 
-                   !completedSwapIds.has(event.data.swapId.toString()) &&
-                   event.data.swap.expiryDate <= currentTimestamp
-        );
-
-        const expiredTransactionsWithNames = await fetchNames(expiredTransactions);
-
+  
         setInitiatedTransactions(initiatedTransactionsWithNames);
         setToAcceptTransactions(toAcceptTransactionsWithNames);
         setOpenTransactions(openTransactionsWithNames);
