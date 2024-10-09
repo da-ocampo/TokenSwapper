@@ -3,10 +3,8 @@ import { ThirdwebProvider } from '@thirdweb-dev/react';
 import '../styles/globals.css';
 import Head from "next/head";
 import { useState, useEffect } from 'react';
+import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
 
-// Define chain IDs
-const MAINNET_CHAIN_ID = 1;
-const SEPOLIA_CHAIN_ID = 11155111;
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [activeChain, setActiveChain] = useState<number>(MAINNET_CHAIN_ID);
@@ -14,18 +12,22 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const handleChainChanged = (chainId: string) => {
       const newChainId = parseInt(chainId, 16);
-      if (newChainId === SEPOLIA_CHAIN_ID) {
-        setActiveChain(SEPOLIA_CHAIN_ID);
-      } else {
-        // Default to Mainnet for any other chain
-        setActiveChain(MAINNET_CHAIN_ID);
+      setActiveChain(newChainId === SEPOLIA_CHAIN_ID ? SEPOLIA_CHAIN_ID : MAINNET_CHAIN_ID);
+    };
+
+    const init = async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          handleChainChanged(chainId);
+          window.ethereum.on('chainChanged', handleChainChanged);
+        } catch (error) {
+          console.error("Failed to initialize chain:", error);
+        }
       }
     };
 
-    if (typeof window !== 'undefined' && window.ethereum) {
-      window.ethereum.request({ method: 'eth_chainId' }).then(handleChainChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-    }
+    init();
 
     return () => {
       if (typeof window !== 'undefined' && window.ethereum) {
@@ -41,6 +43,8 @@ function MyApp({ Component, pageProps }: AppProps) {
     >
       <Head>
         <title>Token Swapper</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Token Swapper Application" />
       </Head>
       <Component {...pageProps} />
     </ThirdwebProvider>

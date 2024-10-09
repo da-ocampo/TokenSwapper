@@ -1,55 +1,15 @@
 import { NextPage } from 'next';
-import { useAddress, useContract, useDisconnect, useMetamask, useChainId } from '@thirdweb-dev/react';
-import { useState, useEffect } from 'react';
-import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS } from '../const/addresses';
-import Modal from './components/Modal';
+import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react';
+import { useEffect } from 'react';
 import Swapper from './Swapper';
 import styles from '../styles/Home.module.css';
 import { useNetworkValidation } from "../hooks/useNetworkValidation";
-
-// Define chain IDs
-const MAINNET_CHAIN_ID = 1;
-const SEPOLIA_CHAIN_ID = 11155111;
 
 const Home: NextPage = () => {
   useNetworkValidation();
   const address = useAddress();
   const disconnect = useDisconnect();
   const connectWithMetamask = useMetamask();
-  const chainId = useChainId();
-  
-  const [contractAddress, setContractAddress] = useState(MAINNET_CONTRACT_ADDRESS);
-  const { contract, isLoading, error } = useContract(contractAddress);
-  
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [networkMessage, setNetworkMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (chainId === SEPOLIA_CHAIN_ID) {
-      setContractAddress(SEPOLIA_CONTRACT_ADDRESS);
-    } else {
-      setContractAddress(MAINNET_CONTRACT_ADDRESS);
-    }
-  }, [chainId]);
-
-  useEffect(() => {
-    const checkStatus = async () => {
-      if (!address || !contract) {
-        setWalletConnected(false);
-        return;
-      }
-      try {
-        setWalletConnected(true);
-      } catch (error) {
-        console.error('Error checking status:', error);
-        setWalletConnected(false);
-      }
-    };
-    if (!isLoading && !error) {
-      checkStatus();
-    }
-  }, [address, contract, isLoading, error]);
 
   useEffect(() => {
     const handleAccountsChanged = (accounts: string[]) => {
@@ -63,9 +23,11 @@ const Home: NextPage = () => {
         }
       }
     };
+
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     }
+
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -73,12 +35,10 @@ const Home: NextPage = () => {
     };
   }, [address, disconnect, connectWithMetamask]);
 
-  const closeModal = () => setSuccessMessage(null);
-
   return (
     <div className={styles.main}>
       <div className={styles.container}>
-        <div className="guide">
+        <div className="app-box">
           <main>
             <section>
               <div>
@@ -90,7 +50,6 @@ const Home: NextPage = () => {
           </main>
         </div>
       </div>
-      {successMessage && <Modal message={successMessage} onClose={closeModal} />}
     </div>
   );
 };

@@ -314,7 +314,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   }
 }
 
-.guide {
+.app-box {
   margin: 0 auto;
   width: 90%;
   max-width: 55em;
@@ -343,7 +343,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.guide-grid {
+.form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3em;
@@ -499,13 +499,13 @@ input[type="text"]:focus, select:focus {
 }
 
 @media only screen and (max-width: 1024px) {
-  .guide-grid {
+  .form-grid {
     grid-template-columns: 1fr;
     gap: 2em;
     transition: gap 0.3s;
   }
 
-  .guide {
+  .app-box {
     width: 90%;
   }
 }
@@ -540,12 +540,12 @@ input[type="text"]:focus, select:focus {
     text-align: center;
   }
 
-  .guide-grid {
+  .form-grid {
     grid-template-columns: 1fr;
     gap: 1em;
   }
 
-  .guide {
+  .app-box {
     width: 90%;
     padding: 0.5em;
   }
@@ -614,7 +614,7 @@ input[type="text"]:focus, select:focus {
     margin-top: 1em;
   }
 
-  .header, .navbar, .guide-grid {
+  .header, .navbar, .form-grid {
     flex-direction: column;
     align-items: center;
   }
@@ -623,7 +623,7 @@ input[type="text"]:focus, select:focus {
     font-size: 1.5em;
   }
 
-  .guide {
+  .app-box {
     margin: 0em;
     padding: 1em;
   }
