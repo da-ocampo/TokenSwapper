@@ -16,8 +16,8 @@ const renderWeb3Button = (action: () => void, buttonText: string, contractAddres
 
 // Renders the required info for the swap (if applicable)
 const renderRequiredInfo = (tx: any) => {
-  if (tx.data?.swap?.acceptor === '0x0000000000000000000000000000000000000000') {
-    const { acceptorTokenQuantity, acceptorETHPortion } = tx.data.swap || {};
+  if (tx?.data?.swap?.acceptor === '0x0000000000000000000000000000000000000000') {
+    const { acceptorTokenQuantity, acceptorETHPortion } = tx.data.swap;
     const acceptorContractName = tx.acceptorContractName || 'Token';
 
     let requiredInfo = '';
@@ -67,9 +67,14 @@ const SwapBox = ({
   contractAddress: string;
   setFormState: (state: any) => void;
 }) => {
+  // Check if tx is defined and has necessary properties
+  if (!tx || !tx.data || !tx.data.swap) {
+    return null; // or return a loading state, or some placeholder content
+  }
+
   const swapStatus = isCompleted ? 'Complete' : isRemoved ? 'Removed' : tx.swapStatus || 'Unknown';
   const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass || 'unknown';
-  const isExpired = isSwapExpired(tx.data?.swap?.expiryDate || 0);
+  const isExpired = isSwapExpired(tx.data.swap.expiryDate);
 
   const handleApprove = async (swapId: number) => {
     const form = formState[swapId.toString()];
@@ -178,29 +183,27 @@ const SwapBox = ({
     });
 
   const renderActionButton = () => {
-    const { swapStatus, swapReason, data } = tx;
-    const { swap } = data || {};
-    const { initiator, acceptor } = swap || {};
+    const { swapStatus, swapReason, data: { swap: { initiator, acceptor } } } = tx;
 
     if (isExpired) {
       return null;
     }
 
-    if (swap?.acceptor === '0x0000000000000000000000000000000000000000') {
+    if (tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000') {
       if (initiator === address) {
         if (swapStatus === 'Not Ready' && swapReason === 'Initiator must approve token') {
-          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', swap.initiatorERCContract);
+          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract);
         }
 
         if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
+          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
         }
 
         if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
+          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
         }
 
-        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
+        return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
       }
 
       if (swapStatus === 'Not Ready' && swapReason === 'Initiator does not own the token specified in the swap') {
@@ -210,15 +213,15 @@ const SwapBox = ({
       if (acceptor === '0x0000000000000000000000000000000000000000') {
         return (
           <>
-            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', swap.acceptorERCContract)}
-            {swapStatus === 'Ready' && renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), swap), 'Complete Swap', contractAddress)}
+            {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract)}
+            {swapStatus === 'Ready' && renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', contractAddress)}
           </>
         );
       }
     } else {
       if (swapReason?.includes('not own')) {
         if (initiator === address) {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
+          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
         }
         return null;
       }
@@ -227,77 +230,77 @@ const SwapBox = ({
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
           return (
             <>
-              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', swap.initiatorERCContract)}
-              {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress)}
+              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
+              {renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress)}
             </>
           );
         }
 
         if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
-        }
-
-        if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), swap), 'Remove Swap', contractAddress);
-        }
-      }
-
-      if (acceptor === address) {
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
-          return (
-            <>
-              {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', swap.initiatorERCContract)}
-            </>
-          );
-        }
-
-        if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
-          return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', swap.acceptorERCContract);
-        }
-
-        if (swapStatus === 'Ready') {
-          return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), swap), 'Complete Swap', contractAddress);
-        }
-      }
-    }
-  };
-
-  const initiatorAddress = tx.data?.swap?.initiator === address ? 'You' : abbreviateAddress(tx.data?.swap?.initiator);
-  const acceptorAddress = tx.data?.swap?.acceptor === '0x0000000000000000000000000000000000000000' ? 'Open Swap' : (tx.data?.swap?.acceptor === address ? 'You' : abbreviateAddress(tx.data?.swap?.acceptor));
-
-  return (
-    <div key={tx.data?.swapId} className={`swapBox ${isExpired ? 'expired' : ''}`}>
-      <div className="swapContent">
-        <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong>{tx.initiatorContractName || 'Unknown'} ↔ {tx.acceptorContractName || 'Unknown'}</strong>
-          <span onClick={() => handleViewDetails(tx.data?.swap)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Show Details</span>
-        </p>
-        <p><strong>{tx.swapType || 'Unknown'}</strong></p>
-        <p><strong>Swap ID:</strong> {tx.data?.swapId?.toString() || 'Unknown'}</p>
-        <p>
-          {tx.data?.swap?.acceptor === '0x0000000000000000000000000000000000000000' 
-            ? `Initiated by ${initiatorAddress}` 
-            : `${initiatorAddress} ↔ ${acceptorAddress}`
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
           }
-        </p>
-        <p>
-          <span className={`status-dot ${dotClass}`}></span>
-          <em><strong>{swapStatus}
-          {swapStatus === 'Partially Ready' && tx.swapReason && <em>, {tx.swapReason}</em>}
-          {swapStatus === 'Not Ready' && tx.swapReason && <em>, {tx.swapReason}</em>}</strong></em>
-        </p>
-        {renderRequiredInfo(tx)}
-      </div>
-
-      <p><strong>{isExpired ? "Expired:" : "Expires:"}</strong> {new Date((tx.data?.swap?.expiryDate || 0) * 1000).toLocaleString()}</p>
-
-      {!isCompleted && !isRemoved && !isExpired && (
-        <div className="swapActions">
-          {renderActionButton()}
+  
+          if (swapStatus === 'Ready') {
+            return renderWeb3Button(() => handleRemoveSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Remove Swap', contractAddress);
+          }
+        }
+  
+        if (acceptor === address) {
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Initiator must approve token')) {
+            return (
+              <>
+                {renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.initiatorERCContract)}
+              </>
+            );
+          }
+  
+          if (swapStatus === 'Not Ready' || (swapStatus === 'Partially Ready' && swapReason === 'Acceptor must approve token')) {
+            return renderWeb3Button(() => handleApprove(tx.data.swapId), 'Approve Token', tx.data.swap.acceptorERCContract);
+          }
+  
+          if (swapStatus === 'Ready') {
+            return renderWeb3Button(() => handleCompleteSwap(parseInt(tx.data.swapId.toString()), tx.data.swap), 'Complete Swap', contractAddress);
+          }
+        }
+      }
+    };
+  
+    const initiatorAddress = tx.data.swap.initiator === address ? 'You' : abbreviateAddress(tx.data.swap.initiator);
+    const acceptorAddress = tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' ? 'Open Swap' : (tx.data.swap.acceptor === address ? 'You' : abbreviateAddress(tx.data.swap.acceptor));
+  
+    return (
+      <div key={tx.data.swapId} className={`swapBox ${isExpired ? 'expired' : ''}`}>
+        <div className="swapContent">
+          <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>{tx.initiatorContractName || 'Unknown'} ↔ {tx.acceptorContractName || 'Unknown'}</strong>
+            <span onClick={() => handleViewDetails(tx.data.swap)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Show Details</span>
+          </p>
+          <p><strong>{tx.swapType || 'Unknown'}</strong></p>
+          <p><strong>Swap ID:</strong> {tx.data.swapId.toString()}</p>
+          <p>
+            {tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000' 
+              ? `Initiated by ${initiatorAddress}` 
+              : `${initiatorAddress} ↔ ${acceptorAddress}`
+            }
+          </p>
+          <p>
+            <span className={`status-dot ${dotClass}`}></span>
+            <em><strong>{swapStatus}
+            {swapStatus === 'Partially Ready' && <em>, {tx.swapReason}</em>}
+            {swapStatus === 'Not Ready' && <em>, {tx.swapReason}</em>}</strong></em>
+          </p>
+          {renderRequiredInfo(tx)}
         </div>
-      )}
-    </div>
-  );
-};
-
-export default SwapBox;
+  
+        <p><strong>{isExpired ? "Expired:" : "Expires:"}</strong> {new Date(tx.data.swap.expiryDate * 1000).toLocaleString()}</p>
+  
+        {!isCompleted && !isRemoved && !isExpired && (
+          <div className="swapActions">
+            {renderActionButton()}
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  export default SwapBox;
