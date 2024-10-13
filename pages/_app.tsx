@@ -5,7 +5,6 @@ import Head from "next/head";
 import { useState, useEffect } from 'react';
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
 
-
 function MyApp({ Component, pageProps }: AppProps) {
   const [activeChain, setActiveChain] = useState<number>(MAINNET_CHAIN_ID);
 

@@ -7,7 +7,7 @@ import Modal from './components/Modal';
 import SwapList from './SwapList';
 import Wallet from './Wallet';
 import { ethers } from 'ethers';
-import { mapTokenTypeToEnum, parseErrorReason, tokenTypeEnumToName } from '../hooks/HelperFunctions';
+import { mapTokenTypeToEnum, parseErrorReason, tokenTypeEnumToName } from '../hooks/useHelpers';
 
 // Main component for the token swapper
 const Swapper: NextPage = () => {

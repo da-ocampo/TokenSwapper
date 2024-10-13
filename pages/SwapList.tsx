@@ -2,8 +2,8 @@ import React, { useState, Dispatch, SetStateAction, useCallback, useEffect } fro
 import { ConnectWallet } from '@thirdweb-dev/react';
 import SwapBox from './components/SwapBox';
 import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS, MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
-import { tokenTypeEnumToName } from '../hooks/HelperFunctions';
-import { fetchSwapStatus, fetchInitiatorStatusForOpenSwap, fetchContractName } from '../hooks/dataFetch';
+import { tokenTypeEnumToName } from '../hooks/useHelpers';
+import { fetchSwapStatus, fetchInitiatorStatusForOpenSwap, fetchContractName } from '../hooks/useDataFetch';
 
 const SwapList = ({
   address,

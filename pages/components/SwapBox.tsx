@@ -1,6 +1,6 @@
 import { Web3Button } from '@thirdweb-dev/react';
 import { ethers } from 'ethers';
-import { abbreviateAddress, parseErrorReason } from '../../hooks/HelperFunctions';
+import { abbreviateAddress, parseErrorReason } from '../../hooks/useHelpers';
 
 // Renders a Web3Button with a given action and text
 const renderWeb3Button = (action: () => void, buttonText: string, contractAddress: string, isDisabled: boolean = false) => (

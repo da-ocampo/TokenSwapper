@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { useChainId, useSwitchChain, useAddress } from "@thirdweb-dev/react";
+import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
 
-const MAINNET_CHAIN_ID = 1;
-const SEPOLIA_CHAIN_ID = 11155111; // Sepolia chain ID
 
 export const useNetworkValidation = () => {
-  const chainId = useChainId(); // Hook to get the current chain ID
-  const switchChain = useSwitchChain(); // Hook to switch the network
-  const address = useAddress(); // Hook to get the user's wallet address
+  const chainId = useChainId();
+  const switchChain = useSwitchChain();
+  const address = useAddress();
 
   useEffect(() => {
     if (address && chainId && chainId !== MAINNET_CHAIN_ID && chainId !== SEPOLIA_CHAIN_ID) {
