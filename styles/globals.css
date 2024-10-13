@@ -1,3 +1,4 @@
+/* Base styles */
 html, body {
   padding: 0;
   margin: 0;
@@ -8,12 +9,6 @@ html, body {
   height: 100%;
   min-height: 100vh;
   line-height: 1.6;
-}
-
-a {
-  text-decoration: none;
-  color: #000;
-  transition: color 0.3s;
 }
 
 *, *::before, *::after {
@@ -27,10 +22,115 @@ a {
   min-height: 100vh;
 }
 
+/* Typography */
 h4 {
   transition: border-bottom 0.3s;
 }
 
+a {
+  text-decoration: none;
+  color: #000;
+  transition: color 0.3s;
+}
+
+/* Layout */
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  border-radius: 10px;
+  margin: 2em 0;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 2em;
+  opacity: 0;
+  transform: scale(0.95);
+  animation: fadeIn 0.5s forwards;
+}
+
+.app-box {
+  margin: 0 auto;
+  width: 90%;
+  max-width: 60em;
+  padding: 1em 0;
+}
+
+/* Header and Navigation */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1em 0;
+  border-bottom: 1px solid black;
+}
+
+.title h1 {
+  margin: 0;
+  transition: font-size 0.3s;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  transition: flex-direction 0.3s, align-items 0.3s;
+}
+
+.navList {
+  list-style: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.navItem {
+  margin: 0 .5em;
+  transition: margin 0.3s;
+}
+
+/* Toggle buttons */
+.toggleButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1em;
+  margin: 1em 0;
+  transition: margin 0.3s;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  padding: 0.5em 1em;  
+  cursor: pointer;
+  font-family: 'MS UI Gothic', Arial, sans-serif;
+  opacity: 0.5;
+  transition: color 0.3s, opacity 0.3s;
+  text-align: left;
+  width: 100%;
+}
+
+.toggle-button.active {
+  opacity: 1;
+  font-weight: bold;
+}
+
+.toggle-button:hover {
+  color: #555;
+}
+
+/* Status dots */
 .status-dot {
   height: 10px;
   width: 10px;
@@ -40,27 +140,16 @@ h4 {
   transition: background-color 0.3s;
 }
 
-.status-dot.ready {
-  background-color: green;
-}
-
-.status-dot.not-ready {
-  background-color: red;
-}
-
-.status-dot.partial {
-  background-color: yellow;
-}
-
-.status-dot.removed {
-  background-color: black;
-}
-
+.status-dot.ready { background-color: green; }
+.status-dot.not-ready { background-color: red; }
+.status-dot.partial { background-color: yellow; }
+.status-dot.removed { background-color: black; }
 .status-dot.complete {
   background-color: white;
   border: 1px solid black;
 }
 
+/* Swap container and box */
 .swapContainer {
   display: flex;
   flex-direction: column;
@@ -100,14 +189,20 @@ h4 {
   transition: margin-top 0.3s;
 }
 
-.actual-value-box {
-  border: 1px solid #ccc;
-  padding: 8px;
-  margin-top: 5px;
-  font-style: italic;
-  background-color: #f9f9f9;
+.swapGrid {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 2em;
+  align-items: start;
 }
 
+.swapContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+/* Form styles */
 .form-group {
   display: flex;
   text-align: left;
@@ -123,8 +218,11 @@ h4 {
   transition: margin-right 0.3s, flex 0.3s;
 }
 
-.form-group input[type="text"], .form-group select, input[type="datetime-local"]
-{
+.form-group input[type="text"],
+.form-group select,
+input[type="text"],
+select,
+input[type="datetime-local"] {
   flex: 1;
   padding: 1em;
   font-family: 'MS UI Gothic', Arial, sans-serif;
@@ -136,7 +234,9 @@ h4 {
   transition: border-color 0.3s, box-shadow 0.3s, padding 0.3s;
 }
 
-.form-group input[type="text"]:focus, input[type="datetime-local"]:focus, .form-group select:focus {
+.form-group input[type="text"]:focus,
+input[type="datetime-local"]:focus,
+.form-group select:focus {
   border-color: #555;
   outline: none;
 }
@@ -145,6 +245,7 @@ input[type="datetime-local"] {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  width: 100%;
 }
 
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -153,13 +254,25 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   color: transparent;
   cursor: pointer;
   height: auto;
-  left: 0;
+  left: auto;
   position: absolute;
   right: 0;
   top: 0;
-  width: auto;
+  width: 2.5em;
 }
 
+input[type="datetime-local"]::before {
+  content: none;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3em;
+  margin-bottom: 2em;
+}
+
+/* Button styles */
 .button, .modal button {
   margin-top: 1em;
   background-color: #000;
@@ -177,68 +290,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   transform: translateY(-2px);
 }
 
-.container {
+/* Modal styles */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  flex-direction: column;
-  flex: 1;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 }
 
-.main-content {
-  flex: 1;
-  width: 100%;
+.modal {
+  background: white;
+  padding: 20px;
+  text-align: center;
+  animation: expandOut 0.3s ease-out;
   border-radius: 10px;
-  margin: 2em 0;
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 2em;
-  opacity: 0;
-  transform: scale(0.95);
-  animation: fadeIn 0.5s forwards;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.swapGrid {
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 2em;
-  align-items: start;
-}
-
-.toggleButtons {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1em;
-}
-
-.toggle-button {
-  background: none;
-  border: none;
-  padding: 0.75em 1em;
-  cursor: pointer;
-  font-family: 'MS UI Gothic', Arial, sans-serif;
-  opacity: 0.7;
-  transition: color 0.3s, opacity 0.3s;
-  text-align: left;
-  width: 100%;
-}
-
-.toggle-button.active {
-  opacity: 1;
-  font-weight: bold;
-}
-
-.toggle-button:hover {
-  color: #555;
-}
-
-.swapContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
-}
-
+/* Info styles */
 .info-icon {
   margin-left: 5px;
   cursor: pointer;
@@ -269,93 +344,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   max-width: 250px;
 }
 
-@media only screen and (max-width: 1024px) {
-  .swapGrid {
-    grid-template-columns: 1fr;
-    gap: 1em;
-  }
-
-  .toggleButtons {
-    align-items: center;
-    margin-bottom: 1em;
-  }
-}
-
-@media only screen and (max-width: 768px) {
-  .swapGrid {
-    grid-template-columns: 1fr;
-    gap: 1em;
-  }
-
-  .toggleButtons {
-    align-items: center;
-    margin-bottom: 1em;
-  }
-
-  .swapContainer {
-    padding-left: 0;
-    width: 100%;
-  }
-
-  .swapBox {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .container, .main-content, .form-group, .swapActions {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .form-group input[type="text"], .form-group select, input[type="text"], select {
-    text-align: center;
-  }
-}
-
-.app-box {
-  margin: 0 auto;
-  width: 90%;
-  max-width: 55em;
-  padding: 1em 0;
-}
-
-.modalBackdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  padding: 20px;
-  text-align: center;
-  animation: expandOut 0.3s ease-out;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3em;
-  margin-bottom: 2em;
-}
-
-.guide-left,
-.guide-right {
-  margin-bottom: 1em;
-  transition: margin-bottom 0.3s;
-}
-
 .token-info-box {
   border: 1px solid #ccc;
   padding: 10px;
@@ -382,89 +370,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-input[type="text"], select {
-  width: 100%;
-  padding: 1em;
-  font-family: 'MS UI Gothic', Arial, sans-serif;
+.actual-value-box {
   border: 1px solid #ccc;
-  border-radius: 10px;
-  box-sizing: border-box;
-  margin: 0;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: border-color 0.3s, box-shadow 0.3s;
+  padding: 8px;
+  margin-top: 5px;
+  font-style: italic;
+  background-color: #f9f9f9;
 }
 
-input[type="text"]:focus, select:focus {
-  border-color: #555;
-  outline: none;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 1em 0;
-  border-bottom: 1px solid black;
-}
-
-.title h1 {
-  margin: 0;
-  transition: font-size 0.3s;
-}
-
-.navbar {
-  display: flex;
-  align-items: center;
-  transition: flex-direction 0.3s, align-items 0.3s;
-}
-
-.navList {
-  list-style: none;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-}
-
-.navItem {
-  margin: 0 .5em;
-  transition: margin 0.3s;
-}
-
-.toggle {
-  text-align: center;
-  margin: 1em 0;
-}
-
-.toggleButtons {
-  display: flex;
-  justify-content: center;
-  margin: 1em 0;
-  transition: margin 0.3s;
-}
-
-.toggle-button {
-  background: none;
-  border: none;
-  padding: 0.5em 1em;
-  cursor: pointer;
-  font-family: 'MS UI Gothic', Arial, sans-serif;
-  opacity: 0.5;
-  transition: color 0.3s, opacity 0.3s;
-}
-
-.toggle-button.active {
-  opacity: 1;
-  font-weight: bold;
-}
-
-.toggle-button:hover {
-  color: #555;
-}
-
+/* Animations */
 @keyframes fadeIn {
   0% {
     opacity: 0;
@@ -508,9 +422,50 @@ input[type="text"]:focus, select:focus {
   .app-box {
     width: 90%;
   }
+
+  .swapGrid {
+    grid-template-columns: 1fr;
+    gap: 1em;
+  }
+
+  .toggleButtons {
+    align-items: center;
+    margin-bottom: 1em;
+  }
 }
 
 @media only screen and (max-width: 768px) {
+  .swapGrid {
+    grid-template-columns: 1fr;
+    gap: 1em;
+  }
+
+  .toggleButtons {
+    align-items: center;
+    margin-bottom: 1em;
+  }
+
+  .swapContainer {
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .swapBox {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .container, .main-content, .form-group, .swapActions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .form-group input[type="text"], .form-group select, input[type="text"], select {
+    text-align: center;
+  }
+
   .modal {
     width: 90%;
     padding: 1em;
@@ -547,7 +502,8 @@ input[type="text"]:focus, select:focus {
 
   .app-box {
     width: 90%;
-    padding: 0.5em;
+    margin: 0em;
+    padding: 1em;
   }
 
   .header {
@@ -609,7 +565,6 @@ input[type="text"]:focus, select:focus {
     text-align: left;
   }
 
-  /* Optional for better spacing on mobile */
   .swapActions {
     margin-top: 1em;
   }
@@ -621,11 +576,6 @@ input[type="text"]:focus, select:focus {
 
   .title h1 {
     font-size: 1.5em;
-  }
-
-  .app-box {
-    margin: 0em;
-    padding: 1em;
   }
 
   .button, .modal button {
@@ -641,6 +591,7 @@ input[type="text"]:focus, select:focus {
   }
 }
 
+/* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 5px;
   background-color: #f7f7f7;

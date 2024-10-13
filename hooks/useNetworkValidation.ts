@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useChainId, useSwitchChain, useAddress } from "@thirdweb-dev/react";
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
 
-
 export const useNetworkValidation = () => {
   const chainId = useChainId();
   const switchChain = useSwitchChain();
