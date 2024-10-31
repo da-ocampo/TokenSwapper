@@ -1,7 +1,18 @@
 import { useEffect } from 'react';
-import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
+import { 
+  MAINNET_CHAIN_ID, 
+  SEPOLIA_CHAIN_ID, 
+  LINEA_MAINNET_CHAIN_ID, 
+  LINEA_TESTNET_CHAIN_ID 
+} from '../const/constants';
 
-export const useAccountSwitching = (address: string | undefined, chainId: number | undefined, disconnect: () => void, connectWithMetamask: () => void, switchChain: (chainId: number) => void) => {
+export const useAccountSwitching = (
+  address: string | undefined, 
+  chainId: number | undefined, 
+  disconnect: () => void, 
+  connectWithMetamask: () => void, 
+  switchChain: (chainId: number) => void
+) => {
   useEffect(() => {
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
@@ -27,9 +38,16 @@ export const useAccountSwitching = (address: string | undefined, chainId: number
   }, [address, disconnect, connectWithMetamask]);
 
   useEffect(() => {
-    if (address && chainId && chainId !== MAINNET_CHAIN_ID && chainId !== SEPOLIA_CHAIN_ID) {
+    const validChainIds = [
+      MAINNET_CHAIN_ID,
+      SEPOLIA_CHAIN_ID,
+      LINEA_MAINNET_CHAIN_ID,
+      LINEA_TESTNET_CHAIN_ID
+    ];
+
+    if (address && chainId && !validChainIds.includes(chainId)) {
       switchChain(MAINNET_CHAIN_ID);
-      alert("Please switch to the Ethereum Mainnet or Sepolia testnet.");
+      alert("Please switch to Ethereum Mainnet, Sepolia testnet, or Linea networks.");
     }
   }, [address, chainId, switchChain]);
 };

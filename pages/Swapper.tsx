@@ -1,8 +1,19 @@
 import { NextPage } from 'next';
 import { Web3Button, ConnectWallet, useAddress, useContract, useSigner, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
-import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS, MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
+import { 
+  MAINNET_CONTRACT_ADDRESS, 
+  SEPOLIA_CONTRACT_ADDRESS, 
+  MAINNET_CHAIN_ID, 
+  SEPOLIA_CHAIN_ID,
+  LINEA_MAINNET_ADDRESS,
+  LINEA_TESTNET_ADDRESS,
+  LINEA_MAINNET_CHAIN_ID,
+  LINEA_TESTNET_CHAIN_ID
+} from '../const/constants';
 import styles from '../styles/Home.module.css';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import Modal from './components/Modal';
 import SwapList from './SwapList';
 import Wallet from './Wallet';
@@ -14,7 +25,6 @@ import {
   useDateInputBlur,
   useFetchTokenDecimals,
   handleERCContractChange,
-  isValidNumber,
   handleTokenQuantityChange,
   handleETHPortionChange,
   useFetchTokenDecimalsEffect
@@ -52,6 +62,12 @@ const Swapper: NextPage = () => {
       } else if (chainId === SEPOLIA_CHAIN_ID) {
         console.log('Sepolia chain detected, using SEPOLIA_CONTRACT_ADDRESS');
         setContractAddress(SEPOLIA_CONTRACT_ADDRESS);
+      } else if (chainId === LINEA_MAINNET_CHAIN_ID) {
+        console.log('Linea Mainnet chain detected, using LINEA_MAINNET_ADDRESS');
+        setContractAddress(LINEA_MAINNET_ADDRESS);
+      } else if (chainId === LINEA_TESTNET_CHAIN_ID) {
+        console.log('Linea Testnet chain detected, using LINEA_TESTNET_ADDRESS');
+        setContractAddress(LINEA_TESTNET_ADDRESS);
       } else {
         console.log('Unsupported chain detected, contract address is cleared');
         setContractAddress('');
@@ -88,7 +104,9 @@ const Swapper: NextPage = () => {
     }
   
     if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
-        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS)) {
+        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
+        (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
+        (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress !== LINEA_TESTNET_ADDRESS)) {
       setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
       return;
     }
@@ -186,62 +204,13 @@ const Swapper: NextPage = () => {
 
   return (
     <div className={styles.main}>
-      <div className={styles.container}>
-        <header className="header">
-          <div className="title">
-            <a href="#">
-              <h1>Token Swapper</h1>
-            </a>
-          </div>
-          <nav className="navbar">
-            <ul className="navList">
-              {address ? (
-                <>
-                  <li className="navItem">
-                    <a
-                      className={`toggle-button ${currentPage === 'swapList' ? 'active' : ''}`}
-                      onClick={() => setCurrentPage('swapList')}
-                    >
-                      Swaps
-                    </a>
-                  </li>
-                  <li className="navItem">
-                    <a
-                      className={`toggle-button ${currentPage === 'wallet' ? 'active' : ''}`}
-                      onClick={() => setCurrentPage('wallet')}
-                    >
-                      Wallet
-                    </a>
-                  </li>
-                  <li className="navItem">
-                    <a
-                      className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
-                      onClick={() => setCurrentPage('initSwap')}
-                    >
-                      Start New Swap
-                    </a>
-                  </li>
-                  <li className="navItem">
-                    <span className="wallet-address">
-                      {address.substring(0, 6)}...{address.substring(address.length - 4)}
-                    </span>
-                  </li>
-                  <li className="navItem">
-                    <span className="network-info">
-                      {chainId === MAINNET_CHAIN_ID ? 'Ethereum Mainnet' : 
-                      chainId === SEPOLIA_CHAIN_ID ? 'Sepolia Testnet' : 
-                      'Unsupported Network'}
-                    </span>
-                  </li>
-                </>
-              ) : (
-                <li className="navItem">
-                  <ConnectWallet />
-                </li>
-              )}
-            </ul>
-          </nav>
-        </header>
+      <div className="app-box">
+        <Header 
+          address={address}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          chainId={chainId}
+        />
         <div className="main-content">
           {currentPage === 'initSwap' && (
             <section id="initSwap" style={{ textAlign: 'center', marginBottom: '1em' }}>
@@ -257,7 +226,7 @@ const Swapper: NextPage = () => {
                     <h3>Enter Swap Information</h3>
                     <p>As the initiator, provide the following information:</p>
                     <div className="form-grid">
-                      <div>
+                      <div className='form-box'>
                         <h4>Initiator Information:</h4>
                         <div className="form-group">
                           <label htmlFor="initiatorTokenType">Initiator&apos;s Token Type:</label>
@@ -302,7 +271,7 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 {formState.initiatorTokenQuantity && (
-                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
                                     <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
                                     <p><em>Entered Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
                                   </div>
@@ -316,7 +285,7 @@ const Swapper: NextPage = () => {
                                     type="text"
                                     name="initiatorTokenId"
                                     placeholder="Initiator&apos;s Token ID"
-                                    value={formState.initiatorTokenId || ''}
+                                    value={formState.initiatorTokenId ||''}
                                     onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                                   />
                                 </div>
@@ -358,7 +327,7 @@ const Swapper: NextPage = () => {
                           />
                         </div>
                         {formState.initiatorETHPortion && (
-                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left'}}>
                             <p><em>Wei: {ethers.utils.parseEther(formState.initiatorETHPortion).toString()}</em></p>
                             <p><em>Gwei: {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
                           </div>
@@ -375,7 +344,7 @@ const Swapper: NextPage = () => {
                           />
                         </div>
                       </div>
-                      <div>
+                      <div className='form-box'>
                         <h4>Acceptor Information:</h4>
                         <div className="form-group">
                           <label htmlFor="acceptorAddress">Acceptor&apos;s Wallet Address:</label>
@@ -430,7 +399,7 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 {formState.acceptorTokenQuantity && (
-                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left'}}>
                                     <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
                                     <p><em>Entered Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
                                   </div>
@@ -486,7 +455,7 @@ const Swapper: NextPage = () => {
                           />
                         </div>
                         {formState.acceptorETHPortion && (
-                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
+                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
                             <p><em>Wei: {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
                             <p><em>Gwei: {ethers.utils.parseUnits(formState.acceptorETHPortion, 'gwei').toString()}</em></p>
                           </div>

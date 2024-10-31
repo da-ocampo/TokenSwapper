@@ -15,19 +15,7 @@ const Home: NextPage = () => {
 
   return (
     <div className={styles.main}>
-      <div className={styles.container}>
-        <div className="app-box">
-          <main>
-            <section>
-              <div>
-                <div className={styles.swapContent}>
-                  <Swapper />
-                </div>
-              </div>
-            </section>
-          </main>
-        </div>
-      </div>
+        <Swapper />
     </div>
   );
 };

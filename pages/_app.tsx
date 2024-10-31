@@ -1,9 +1,46 @@
 import type { AppProps } from "next/app";
 import { ThirdwebProvider } from '@thirdweb-dev/react';
+import { Sepolia, Ethereum, Chain } from "@thirdweb-dev/chains";
 import '../styles/globals.css';
 import Head from "next/head";
 import { useState, useEffect } from 'react';
-import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
+import { 
+  MAINNET_CHAIN_ID, 
+  SEPOLIA_CHAIN_ID,
+  LINEA_MAINNET_CHAIN_ID,
+  LINEA_TESTNET_CHAIN_ID 
+} from '../const/constants';
+
+// Define Linea chains
+const LineaMainnet: Chain = {
+  chainId: LINEA_MAINNET_CHAIN_ID,
+  rpc: ["https://rpc.linea.build"],
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  shortName: "linea",
+  slug: "linea",
+  testnet: false,
+  chain: "Linea",
+  name: "Linea Mainnet"
+};
+
+const LineaTestnet: Chain = {
+  chainId: LINEA_TESTNET_CHAIN_ID,
+  rpc: ["https://rpc.goerli.linea.build"],
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  shortName: "linea-testnet",
+  slug: "linea-testnet",
+  testnet: true,
+  chain: "Linea",
+  name: "Linea Testnet"
+};
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [activeChain, setActiveChain] = useState<number>(MAINNET_CHAIN_ID);
@@ -11,7 +48,12 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const handleChainChanged = (chainId: string) => {
       const newChainId = parseInt(chainId, 16);
-      setActiveChain(newChainId === SEPOLIA_CHAIN_ID ? SEPOLIA_CHAIN_ID : MAINNET_CHAIN_ID);
+      const validChains = [MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID];
+      if (validChains.includes(newChainId)) {
+        setActiveChain(newChainId);
+      } else {
+        setActiveChain(MAINNET_CHAIN_ID);
+      }
     };
 
     const init = async () => {
@@ -39,9 +81,15 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ThirdwebProvider
       clientId={process.env.NEXT_PUBLIC_TEMPLATE_CLIENT_ID}
       activeChain={activeChain}
+      supportedChains={[
+        Ethereum,
+        Sepolia,
+        LineaMainnet,
+        LineaTestnet
+      ]}
     >
       <Head>
-        <title>Token Swapper</title>
+        <title>P2PSwap</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="Token Swapper Application" />
       </Head>

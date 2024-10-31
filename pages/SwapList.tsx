@@ -1,7 +1,16 @@
 import React, { useState, Dispatch, SetStateAction, useCallback, useEffect } from 'react';
 import { ConnectWallet } from '@thirdweb-dev/react';
 import SwapBox from './components/SwapBox';
-import { MAINNET_CONTRACT_ADDRESS, SEPOLIA_CONTRACT_ADDRESS, MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID } from '../const/constants';
+import { 
+  MAINNET_CONTRACT_ADDRESS, 
+  SEPOLIA_CONTRACT_ADDRESS, 
+  MAINNET_CHAIN_ID, 
+  SEPOLIA_CHAIN_ID,
+  LINEA_MAINNET_ADDRESS,
+  LINEA_TESTNET_ADDRESS,
+  LINEA_MAINNET_CHAIN_ID,
+  LINEA_TESTNET_CHAIN_ID
+} from '../const/constants';
 import { tokenTypeEnumToName } from '../hooks/useHelpers';
 import { fetchSwapStatus, fetchInitiatorStatusForOpenSwap, fetchContractName } from '../hooks/useDataFetch';
 
@@ -40,7 +49,9 @@ const SwapList = ({
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer && address && 
         ((chainId === MAINNET_CHAIN_ID && contractAddress === MAINNET_CONTRACT_ADDRESS) ||
-         (chainId === SEPOLIA_CHAIN_ID && contractAddress === SEPOLIA_CONTRACT_ADDRESS))) {
+         (chainId === SEPOLIA_CHAIN_ID && contractAddress === SEPOLIA_CONTRACT_ADDRESS) ||
+         (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress === LINEA_MAINNET_ADDRESS) ||
+         (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress === LINEA_TESTNET_ADDRESS))) {
       try {
         const events = await swapContract.events.getAllEvents();
   
@@ -268,22 +279,28 @@ const SwapList = ({
                       ))
                   )
                 ) : (
-                  initiatedTransactions
-                  .filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000')
-                  .map(tx => (
-                    <SwapBox
-                      key={tx.data.swapId}
-                      tx={tx}
-                      formState={formState}
-                      address={address}
-                      handleViewDetails={handleViewDetails}
-                      contractAddress={contractAddress}
-                      swapContract={swapContract}
-                      signer={signer}
-                      setFormState={setFormState}
-                    />
-                  ))
-              )}
+                  initiatedTransactions.filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000').length === 0 ? (
+                    <div>
+                      <p style={{ textAlign: 'center', marginBottom: '1em' }}>No transactions found.</p>
+                      <button className="button tw-web3button css-wkqovy" onClick={() => setCurrentPage('initSwap')}>Start a new swap here</button>
+                    </div>
+                  ) : (
+                    initiatedTransactions
+                      .filter(tx => tx.data.swap.acceptor === '0x0000000000000000000000000000000000000000')
+                      .map(tx => (
+                        <SwapBox
+                          key={tx.data.swapId}
+                          tx={tx}
+                          formState={formState}
+                          address={address}
+                          handleViewDetails={handleViewDetails}
+                          contractAddress={contractAddress}
+                          swapContract={swapContract}
+                          signer={signer}setFormState={setFormState}
+                        />
+                      ))
+                  )
+                )}
             </>
           )}
           {showInitiatedSwaps === 'toAccept' && (toAcceptTransactions.length === 0 ? (
@@ -356,11 +373,11 @@ const SwapList = ({
               />
             ))
           ))}
+          </div>
         </div>
-      </div>
-    )}
-  </section>
-);
+      )}
+    </section>
+  );
 };
 
 export default SwapList;
