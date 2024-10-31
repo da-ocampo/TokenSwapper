@@ -29,7 +29,7 @@ const LineaMainnet: Chain = {
 
 const LineaTestnet: Chain = {
   chainId: LINEA_TESTNET_CHAIN_ID,
-  rpc: ["https://rpc.goerli.linea.build"],
+  rpc: ["https://rpc.sepolia.linea.build"],
   nativeCurrency: {
     name: "Ether",
     symbol: "ETH",
