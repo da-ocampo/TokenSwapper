@@ -87,6 +87,14 @@ export const useDateInputBlur = () => {
   return dateInputRef;
 };
 
+export const verifyConversion = (weiValue: string, decimals: number): string => {
+  try {
+    return ethers.utils.formatUnits(weiValue, decimals);
+  } catch (error) {
+    return 'Invalid conversion';
+  }
+};
+
 // Hook to fetch token decimals and calculate token value
 export const useFetchTokenDecimals = (formState: any, signer: ethers.Signer | undefined, setTokenDecimals: React.Dispatch<React.SetStateAction<Record<string, number>>>, setCalculatedValue: React.Dispatch<React.SetStateAction<Record<string, string>>>) => {
   return useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
@@ -149,18 +157,21 @@ export const handleTokenQuantityChange = (
   setCalculatedValue: React.Dispatch<React.SetStateAction<Record<string, string>>>
 ) => {
   if (isValidNumber(value)) {
-    setFormState((prevState: any) => ({ ...prevState, [`${side}TokenQuantity`]: value }));
-    const decimals = tokenDecimals[side] || 18;
+    setFormState((prevState: any) => ({ 
+      ...prevState, 
+      [`${side}TokenQuantity`]: value 
+    }));
+    
     if (value) {
-      try {
-        const bigNumberValue = ethers.utils.parseUnits(value, decimals);
-        setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: ethers.utils.formatUnits(bigNumberValue, decimals) }));
-      } catch (error) {
-        console.error('Error parsing token quantity:', error);
-        setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: 'Invalid input' }));
-      }
+      setCalculatedValue((prevValues: Record<string, string>) => ({ 
+        ...prevValues, 
+        [side]: value
+      }));
     } else {
-      setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: '' }));
+      setCalculatedValue((prevValues: Record<string, string>) => ({ 
+        ...prevValues, 
+        [side]: ''
+      }));
     }
   }
 };

@@ -27,8 +27,10 @@ import {
   handleERCContractChange,
   handleTokenQuantityChange,
   handleETHPortionChange,
-  useFetchTokenDecimalsEffect
+  useFetchTokenDecimalsEffect,
+  verifyConversion
 } from '../hooks/useHelpers';
+import { fetchContractName } from '../hooks/useDataFetch';
 
 // Main component for the token swapper
 const Swapper: NextPage = () => {
@@ -44,12 +46,19 @@ const Swapper: NextPage = () => {
     acceptorTokenType: 'NONE',
     acceptorERCContract: ethers.constants.AddressZero,
     expiryDate: '',
+    initiatorTokenQuantity: '',
+    acceptorTokenQuantity: '',
+    initiatorETHPortion: '',
+    acceptorETHPortion: '',
+    initiatorTokenId: '',
+    acceptorTokenId: ''
   });
   const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet'>('swapList');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
   const [calculatedValue, setCalculatedValue] = useState<{ [key: string]: string }>({});
+  const [contractNames, setContractNames] = useState<{ [key: string]: string }>({});
   const dateInputRef = useDateInputBlur();
   const fetchTokenDecimals = useFetchTokenDecimals(formState, signer, setTokenDecimals, setCalculatedValue);
   useFetchTokenDecimalsEffect(formState, fetchTokenDecimals);
@@ -81,6 +90,23 @@ const Swapper: NextPage = () => {
     }
   }, [contractAddress]);
 
+  useEffect(() => {
+    const fetchNames = async () => {
+      if (formState.initiatorERCContract) {
+        const name = await fetchContractName(formState.initiatorERCContract, signer);
+        setContractNames(prev => ({ ...prev, initiator: name }));
+      }
+      if (formState.acceptorERCContract) {
+        const name = await fetchContractName(formState.acceptorERCContract, signer);
+        setContractNames(prev => ({ ...prev, acceptor: name }));
+      }
+    };
+
+    if (signer) {
+      fetchNames();
+    }
+  }, [formState.initiatorERCContract, formState.acceptorERCContract, signer]);
+
   // Handles initiating a new swap
   const handleSwap = async () => {
     const {
@@ -99,7 +125,10 @@ const Swapper: NextPage = () => {
     } = formState;
 
     if (!address || !swapContract || !contractAddress) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Wallet not connected, contract not found, or unsupported network.' 
+      }));
       return;
     }
   
@@ -107,15 +136,36 @@ const Swapper: NextPage = () => {
         (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
         (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
         (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress !== LINEA_TESTNET_ADDRESS)) {
-      setFormState(prevState => ({ ...prevState, modalMessage: 'Please switch to the correct network for this contract.' }));
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Please switch to the correct network for this contract.' 
+      }));
       return;
     }
 
     const finalAcceptorAddress = acceptorAddress || '0x0000000000000000000000000000000000000000';
 
     try {
+      // Get token decimals for both parties
       const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
       const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
+
+      // Parse quantities only once before sending to contract
+      let parsedInitiatorQuantity = '0';
+      let parsedAcceptorQuantity = '0';
+
+      // Only parse if there's a quantity to parse
+      if (initiatorTokenQuantity && initiatorTokenQuantity !== '0') {
+        parsedInitiatorQuantity = ethers.utils
+          .parseUnits(initiatorTokenQuantity, initiatorTokenDecimals)
+          .toString();
+      }
+
+      if (acceptorTokenQuantity && acceptorTokenQuantity !== '0') {
+        parsedAcceptorQuantity = ethers.utils
+          .parseUnits(acceptorTokenQuantity, acceptorTokenDecimals)
+          .toString();
+      }
 
       const tx = await swapContract.call('initiateSwap', [
         {
@@ -124,12 +174,12 @@ const Swapper: NextPage = () => {
           initiatorTokenType: mapTokenTypeToEnum(initiatorTokenType),
           initiatorERCContract: initiatorTokenType === 'NONE' ? ethers.constants.AddressZero : initiatorERCContract,
           initiatorTokenId: parseInt(initiatorTokenId) || 0,
-          initiatorTokenQuantity: ethers.utils.parseUnits(initiatorTokenQuantity || '0', initiatorTokenDecimals).toString(),
+          initiatorTokenQuantity: parsedInitiatorQuantity,
           initiatorETHPortion: ethers.utils.parseEther(initiatorETHPortion || '0'),
           acceptorTokenType: mapTokenTypeToEnum(acceptorTokenType),
           acceptorERCContract: acceptorTokenType === 'NONE' ? ethers.constants.AddressZero : acceptorERCContract,
           acceptorTokenId: parseInt(acceptorTokenId) || 0,
-          acceptorTokenQuantity: ethers.utils.parseUnits(acceptorTokenQuantity || '0', acceptorTokenDecimals).toString(),
+          acceptorTokenQuantity: parsedAcceptorQuantity,
           acceptorETHPortion: ethers.utils.parseEther(acceptorETHPortion || '0'),
           expiryDate: Math.floor(new Date(expiryDate).getTime() / 1000),
         },
@@ -161,6 +211,7 @@ const Swapper: NextPage = () => {
           acceptorETHPortion: '',
           initiatorTokenId: '',
           acceptorTokenId: '',
+          expiryDate: '',
           modalMessage: `Swap successfully initiated! Your Swap ID is ${parseInt(swapIdHex, 16)}`,
         });
         setCurrentPage('swapList');
@@ -170,7 +221,10 @@ const Swapper: NextPage = () => {
     } catch (error) {
       console.error('Error initiating Swap:', error);
       const reason = parseErrorReason(error);
-      setFormState(prevState => ({ ...prevState, modalMessage: `Error initiating Swap. ${reason}` }));
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: `Error initiating Swap. ${reason}` 
+      }));
     }
   };
 
@@ -186,18 +240,27 @@ const Swapper: NextPage = () => {
 
     const parsedData = {
       ...swapData,
-      initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) ? swapData.initiatorTokenId.toString() : swapData.initiatorTokenId,
-      acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) ? swapData.acceptorTokenId.toString() : swapData.acceptorTokenId,
+      initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) 
+        ? swapData.initiatorTokenId.toString() 
+        : swapData.initiatorTokenId,
+      acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) 
+        ? swapData.acceptorTokenId.toString() 
+        : swapData.acceptorTokenId,
       initiatorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.initiatorTokenQuantity) 
         ? ethers.utils.formatUnits(swapData.initiatorTokenQuantity, initiatorTokenDecimals)
         : swapData.initiatorTokenQuantity,
       acceptorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.acceptorTokenQuantity) 
         ? ethers.utils.formatUnits(swapData.acceptorTokenQuantity, acceptorTokenDecimals)
         : swapData.acceptorTokenQuantity,
-      initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) ? ethers.utils.formatEther(swapData.initiatorETHPortion) : swapData.initiatorETHPortion,
-      acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion) ? ethers.utils.formatEther(swapData.acceptorETHPortion) : swapData.acceptorETHPortion,
+      initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) 
+        ? ethers.utils.formatEther(swapData.initiatorETHPortion) 
+        : swapData.initiatorETHPortion,
+      acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion) 
+        ? ethers.utils.formatEther(swapData.acceptorETHPortion) 
+        : swapData.acceptorETHPortion,
       expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(),
     };
+    
     setModalData(parsedData);
     setShowModal(true);
   };
@@ -253,7 +316,7 @@ const Swapper: NextPage = () => {
                               <input
                                 type="text"
                                 name="initiatorERCContract"
-                                placeholder="Initiator&apos;s Token Contract Address"
+                                placeholder="Initiator's Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
                                 onChange={(e) => handleERCContractChange(e.target.value, 'initiator', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
@@ -265,15 +328,29 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
-                                    placeholder="Initiator&apos;s Token Quantity"
+                                    placeholder="Initiator's Token Quantity"
                                     value={formState.initiatorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
                                 </div>
                                 {formState.initiatorTokenQuantity && (
-                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
-                                    <p><em>Token Decimals: {tokenDecimals['initiator']}</em></p>
-                                    <p><em>Entered Value: {calculatedValue['initiator'] || 'N/A'}</em></p>
+                                  <div className="token-info-box" style={{ 
+                                    border: '1px solid #ccc', 
+                                    padding: '12px', 
+                                    marginTop: '8px', 
+                                    borderRadius: '4px', 
+                                    backgroundColor: '#f9f9f9', 
+                                    textAlign: 'left' 
+                                  }}>
+                                    <p><strong>Contract:</strong> <em>{contractNames['initiator'] || 'Loading...'}</em></p>
+                                    <p><strong>Token Decimals:</strong> <em>{tokenDecimals['initiator'] || 18}</em></p>
+                                    <p><strong>Entered Amount:</strong> <em>{formState.initiatorTokenQuantity}</em></p>
+                                    <p><strong>Contract Value (Wei):</strong> <em>
+                                      {ethers.utils.parseUnits(
+                                        formState.initiatorTokenQuantity || '0',
+                                        tokenDecimals['initiator'] || 18
+                                      ).toString()}
+                                    </em></p>
                                   </div>
                                 )}
                               </>
@@ -284,8 +361,8 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
-                                    placeholder="Initiator&apos;s Token ID"
-                                    value={formState.initiatorTokenId ||''}
+                                    placeholder="Initiator's Token ID"
+                                    value={formState.initiatorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                                   />
                                 </div>
@@ -297,7 +374,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
-                                    placeholder="Initiator&apos;s Token ID"
+                                    placeholder="Initiator's Token ID"
                                     value={formState.initiatorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                                   />
@@ -307,7 +384,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
-                                    placeholder="Initiator&apos;s Token Quantity"
+                                    placeholder="Initiator's Token Quantity"
                                     value={formState.initiatorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
@@ -321,15 +398,16 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="initiatorETHPortion"
-                            placeholder="Initiator&apos;s ETH Portion"
+                            placeholder="Initiator's ETH Portion"
                             value={formState.initiatorETHPortion || ''}
                             onChange={(e) => handleETHPortionChange(e.target.value, 'initiator', setFormState)}
                           />
                         </div>
                         {formState.initiatorETHPortion && (
-                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left'}}>
-                            <p><em>Wei: {ethers.utils.parseEther(formState.initiatorETHPortion).toString()}</em></p>
-                            <p><em>Gwei: {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
+                          <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
+                            <p><strong>Entered Amount:</strong> <em>{formState.initiatorETHPortion}</em></p>
+                            <p><em><strong>Wei Value:</strong> {ethers.utils.parseEther(formState.initiatorETHPortion).toString()}</em></p>
+                            <p><em><strong>Gwei Value:</strong> {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
                           </div>
                         )}
                         <div className="form-group">
@@ -351,7 +429,7 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="acceptorAddress"
-                            placeholder="Acceptor&apos;s Wallet Address"
+                            placeholder="Acceptor's Wallet Address"
                             value={formState.acceptorAddress || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                           />
@@ -381,7 +459,7 @@ const Swapper: NextPage = () => {
                               <input
                                 type="text"
                                 name="acceptorERCContract"
-                                placeholder="Acceptor&apos;s Token Contract Address"
+                                placeholder="Acceptor's Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
                                 onChange={(e) => handleERCContractChange(e.target.value, 'acceptor', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
@@ -393,15 +471,29 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
-                                    placeholder="Acceptor&apos;s Token Quantity"
+                                    placeholder="Acceptor's Token Quantity"
                                     value={formState.acceptorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
                                 </div>
                                 {formState.acceptorTokenQuantity && (
-                                  <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left'}}>
-                                    <p><em>Token Decimals: {tokenDecimals['acceptor']}</em></p>
-                                    <p><em>Entered Value: {calculatedValue['acceptor'] || 'N/A'}</em></p>
+                                  <div className="token-info-box" style={{ 
+                                    border: '1px solid #ccc', 
+                                    padding: '12px', 
+                                    marginTop: '8px', 
+                                    borderRadius: '4px', 
+                                    backgroundColor: '#f9f9f9', 
+                                    textAlign: 'left' 
+                                  }}>
+                                    <p><strong>Contract:</strong> <em>{contractNames['acceptor'] || 'Loading...'}</em></p>
+                                    <p><strong>Token Decimals:</strong> <em>{tokenDecimals['acceptor'] || 18}</em></p>
+                                    <p><strong>Entered Amount:</strong> <em>{formState.acceptorTokenQuantity}</em></p>
+                                    <p><strong>Contract Value (Wei):</strong> <em>
+                                      {ethers.utils.parseUnits(
+                                        formState.acceptorTokenQuantity || '0',
+                                        tokenDecimals['acceptor'] || 18
+                                      ).toString()}
+                                    </em></p>
                                   </div>
                                 )}
                               </>
@@ -412,7 +504,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
-                                    placeholder="Acceptor&apos;s Token ID"
+                                    placeholder="Acceptor's Token ID"
                                     value={formState.acceptorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                                   />
@@ -425,7 +517,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
-                                    placeholder="Acceptor&apos;s Token ID"
+                                    placeholder="Acceptor's Token ID"
                                     value={formState.acceptorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                                   />
@@ -435,7 +527,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
-                                    placeholder="Acceptor&apos;s Token Quantity"
+                                    placeholder="Acceptor's Token Quantity"
                                     value={formState.acceptorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
@@ -449,15 +541,16 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="acceptorETHPortion"
-                            placeholder="Acceptor&apos;s ETH Portion"
+                            placeholder="Acceptor's ETH Portion"
                             value={formState.acceptorETHPortion || ''}
                             onChange={(e) => handleETHPortionChange(e.target.value, 'acceptor', setFormState)}
                           />
                         </div>
                         {formState.acceptorETHPortion && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
-                            <p><em>Wei: {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
-                            <p><em>Gwei: {ethers.utils.parseUnits(formState.acceptorETHPortion, 'gwei').toString()}</em></p>
+                            <p><strong>Entered Amount:</strong> <em>{formState.acceptorETHPortion}</em></p>
+                            <p><em><strong>Wei Value:</strong> {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
+                            <p><em><strong>Gwei Value:</strong> {ethers.utils.parseUnits(formState.acceptorETHPortion, 'gwei').toString()}</em></p>
                           </div>
                         )}
                       </div>
@@ -491,6 +584,7 @@ const Swapper: NextPage = () => {
             />
           )}
         </div>
+        <Footer />
       </div>
       {formState.modalMessage && <Modal message={formState.modalMessage} onClose={closeModal} />}
       {showModal && modalData && (

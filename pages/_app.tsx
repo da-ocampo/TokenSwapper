@@ -11,7 +11,6 @@ import {
   LINEA_TESTNET_CHAIN_ID 
 } from '../const/constants';
 
-// Define Linea chains
 const LineaMainnet: Chain = {
   chainId: LINEA_MAINNET_CHAIN_ID,
   rpc: ["https://rpc.linea.build"],
