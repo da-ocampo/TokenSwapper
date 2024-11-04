@@ -15,6 +15,8 @@ import styles from '../styles/Home.module.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
+import Disclaimer from './components/Disclaimer';
+import Privacy from './components/Privacy';
 import SwapList from './SwapList';
 import Wallet from './Wallet';
 import { ethers } from 'ethers';
@@ -53,7 +55,7 @@ const Swapper: NextPage = () => {
     initiatorTokenId: '',
     acceptorTokenId: ''
   });
-  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet'>('swapList');
+  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy'>('swapList');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
@@ -590,8 +592,14 @@ const Swapper: NextPage = () => {
               handleViewDetails={handleViewDetails}
             />
           )}
+          {currentPage === 'disclaimer' && (
+            <Disclaimer />
+          )}
+          {currentPage === 'privacy' && (
+            <Privacy />
+          )}
         </div>
-        <Footer />
+        <Footer setCurrentPage={setCurrentPage} />
       </div>
       {formState.modalMessage && <Modal message={formState.modalMessage} onClose={closeModal} />}
       {showModal && modalData && (

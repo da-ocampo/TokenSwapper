@@ -1,22 +1,28 @@
 import React from 'react';
-import Link from 'next/link';
 
-const Footer = () => {
+interface FooterProps {
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy') => void;
+}
+
+const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
   return (
     <footer className="footer">
-      <div className="footerContainer">
+      <div className="footerContainer" style={{marginBottom: "2em"}}>
         <div className="textCenter">
-          <Link href="#" passHref legacyBehavior>
-            <a className="text-black mr-2 lg:mr-8 xl:mr-8 hover:underline">
-              <span className='text-base'>Privacy Policy</span>
-            </a>
-          </Link>
-          <span className="text-gray-200">|</span>
-          <Link href="#" passHref legacyBehavior>
-            <a className="text-black ml-2 lg:ml-8 xl:ml-8 hover:underline">
-              <span className='text-base'>Terms of Service</span>
-            </a>
-          </Link>
+          <a
+            onClick={() => setCurrentPage('disclaimer')}
+            className="toggle-button"
+            style={{paddingLeft: "0"}}
+          >
+            Disclaimer/Terms of Use
+          </a>
+          <span style={{ opacity: 0.5 }}>|</span>
+          <a
+            onClick={() => setCurrentPage('privacy')}
+            className="toggle-button"
+          >
+            Privacy Policy
+          </a>
         </div>
       </div>
     </footer>

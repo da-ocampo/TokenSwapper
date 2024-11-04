@@ -9,8 +9,8 @@ import {
 
 interface HeaderProps {
   address: string | undefined;
-  currentPage: "initSwap" | "swapList" | "wallet";
-  setCurrentPage: (page: "initSwap" | "swapList" | "wallet") => void;
+  currentPage: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy';
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer') => void;
   chainId: number | undefined;
 }
 
