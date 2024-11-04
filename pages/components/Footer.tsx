@@ -12,14 +12,15 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
           <a
             onClick={() => setCurrentPage('disclaimer')}
             className="toggle-button"
-            style={{paddingLeft: "0"}}
+            style={{padding: '0.5em 0.5em 0.5em 0'}}
           >
-            Disclaimer/Terms of Use
+            Terms of Use
           </a>
           <span style={{ opacity: 0.5 }}>|</span>
           <a
             onClick={() => setCurrentPage('privacy')}
             className="toggle-button"
+            style={{padding: ".5em"}}
           >
             Privacy Policy
           </a>

@@ -296,6 +296,20 @@ const Swapper: NextPage = () => {
                 {address && (
                   <div>
                     <h3>Enter Swap Information</h3>
+                    <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)', marginBottom: '1em' }}>
+                      By using this site you acknowledge you have read and understand the{' '}
+                      <a
+                        onClick={() => setCurrentPage('disclaimer')}
+                        style={{ 
+                          display: 'inline', 
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          color: 'inherit'
+                        }}
+                      >
+                        disclaimer/terms of use
+                      </a>.
+                    </p>
                     <p>As the initiator, provide the following information:</p>
                     <div className="form-grid">
                       <div className='form-box'>
