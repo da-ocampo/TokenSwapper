@@ -116,8 +116,15 @@ export const useFetchTokenDecimals = (formState: any, signer: ethers.Signer | un
           }
         } catch (error) {
           console.error('Error fetching token decimals:', error);
+          // If decimals() fails, default to raw values
+          setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
+          setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: formState[`${side}TokenQuantity`] || '' }));
         }
       }
+    } else if (tokenType === 'ERC1155') {
+      // For ERC1155, we don't try to fetch decimals, use raw values
+      setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
+      setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: formState[`${side}TokenQuantity`] || '' }));
     } else {
       setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
       setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: '' }));
@@ -157,20 +164,19 @@ export const handleTokenQuantityChange = (
   setCalculatedValue: React.Dispatch<React.SetStateAction<Record<string, string>>>
 ) => {
   if (isValidNumber(value)) {
-    setFormState((prevState: any) => ({ 
-      ...prevState, 
-      [`${side}TokenQuantity`]: value 
-    }));
+    setFormState((prevState: any) => ({ ...prevState, [`${side}TokenQuantity`]: value }));
     
-    if (value) {
+    // Raw value for ERC1155 or if decimals are 0
+    if (tokenDecimals[side] === 0) {
       setCalculatedValue((prevValues: Record<string, string>) => ({ 
         ...prevValues, 
         [side]: value
       }));
     } else {
+      // Use decimals for ERC20 and ERC777
       setCalculatedValue((prevValues: Record<string, string>) => ({ 
         ...prevValues, 
-        [side]: ''
+        [side]: value
       }));
     }
   }

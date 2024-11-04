@@ -75,7 +75,7 @@ const Swapper: NextPage = () => {
         console.log('Linea Mainnet chain detected, using LINEA_MAINNET_ADDRESS');
         setContractAddress(LINEA_MAINNET_ADDRESS);
       } else if (chainId === LINEA_TESTNET_CHAIN_ID) {
-        console.log('Linea Testnet chain detected, using LINEA_TESTNET_ADDRESS');
+        console.log('Linea Sepolia chain detected, using LINEA_TESTNET_ADDRESS');
         setContractAddress(LINEA_TESTNET_ADDRESS);
       } else {
         console.log('Unsupported chain detected, contract address is cleared');
@@ -150,21 +150,28 @@ const Swapper: NextPage = () => {
       const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
       const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
 
-      // Parse quantities only once before sending to contract
       let parsedInitiatorQuantity = '0';
       let parsedAcceptorQuantity = '0';
 
-      // Only parse if there's a quantity to parse
+      // Parse quantities based on token type
       if (initiatorTokenQuantity && initiatorTokenQuantity !== '0') {
-        parsedInitiatorQuantity = ethers.utils
-          .parseUnits(initiatorTokenQuantity, initiatorTokenDecimals)
-          .toString();
+        if (initiatorTokenType === 'ERC1155') {
+          parsedInitiatorQuantity = initiatorTokenQuantity; // Use raw value for ERC1155
+        } else if (initiatorTokenType === 'ERC20' || initiatorTokenType === 'ERC777') {
+          parsedInitiatorQuantity = ethers.utils
+            .parseUnits(initiatorTokenQuantity, initiatorTokenDecimals)
+            .toString();
+        }
       }
 
       if (acceptorTokenQuantity && acceptorTokenQuantity !== '0') {
-        parsedAcceptorQuantity = ethers.utils
-          .parseUnits(acceptorTokenQuantity, acceptorTokenDecimals)
-          .toString();
+        if (acceptorTokenType === 'ERC1155') {
+          parsedAcceptorQuantity = acceptorTokenQuantity; // Use raw value for ERC1155
+        } else if (acceptorTokenType === 'ERC20' || acceptorTokenType === 'ERC777') {
+          parsedAcceptorQuantity = ethers.utils
+            .parseUnits(acceptorTokenQuantity, acceptorTokenDecimals)
+            .toString();
+        }
       }
 
       const tx = await swapContract.call('initiateSwap', [

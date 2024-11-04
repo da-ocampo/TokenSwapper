@@ -98,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({
               {chainId === MAINNET_CHAIN_ID ? 'Ethereum Mainnet' : 
                chainId === SEPOLIA_CHAIN_ID ? 'Sepolia Testnet' : 
                chainId === LINEA_MAINNET_CHAIN_ID ? 'Linea Mainnet' :
-               chainId === LINEA_TESTNET_CHAIN_ID ? 'Linea Testnet' :
+               chainId === LINEA_TESTNET_CHAIN_ID ? 'Linea Sepolia' :
                'Unsupported Network'}
             </span>
           </>
