@@ -76,27 +76,68 @@ const SwapBox = ({
   const dotClass = isCompleted ? 'complete' : isRemoved ? 'removed' : tx.dotClass || 'unknown';
   const isExpired = isSwapExpired(tx.data.swap.expiryDate);
 
-  const handleApprove = async (swapId: number) => {
-    const form = formState[swapId.toString()];
-    const { approveContractAddress, approveTokenId, approveTokenQuantity } = form || {};
+// In SwapBox.tsx, update the handleApprove function:
 
-    if (!address || !approveContractAddress || !swapContract || !contractAddress) {
-      setFormState((prevState: any) => ({ ...prevState, modalMessage: 'Wallet not connected, contract not found, or unsupported network.' }));
-      return;
-    }
+const handleApprove = async (swapId: number) => {
+  const form = formState[swapId.toString()];
+  const { approveContractAddress, approveTokenId, approveTokenQuantity } = form || {};
 
-    try {
-      const approveContract = new ethers.Contract(approveContractAddress, [
-        'function approve(address, uint256)',
-        'function decimals() view returns (uint8)'
-      ], signer);
-      
+  if (!address || !approveContractAddress || !swapContract || !contractAddress) {
+    setFormState((prevState: any) => ({ 
+      ...prevState, 
+      modalMessage: 'Wallet not connected, contract not found, or unsupported network.' 
+    }));
+    return;
+  }
+
+  try {
+    // Get the token type from the swap data
+    const tokenType = tx.swapType.split(' ')[0]; // This will get "ERC1155", "ERC20", etc.
+
+    if (tokenType === 'ERC1155') {
+      // Use ERC1155 setApprovalForAll
+      const approveContract = new ethers.Contract(
+        approveContractAddress,
+        [
+          'function setApprovalForAll(address operator, bool approved)',
+          'function isApprovedForAll(address account, address operator) view returns (bool)'
+        ],
+        signer
+      );
+
+      // Check if already approved
+      const isApproved = await approveContract.isApprovedForAll(address, contractAddress);
+      if (!isApproved) {
+        const tx = await approveContract.setApprovalForAll(contractAddress, true);
+        const provider = approveContract.provider;
+        provider.once(tx.hash, () => {
+          setFormState((prevState: any) => ({ 
+            ...prevState, 
+            modalMessage: 'ERC1155 Approval successful!' 
+          }));
+        });
+      } else {
+        setFormState((prevState: any) => ({ 
+          ...prevState, 
+          modalMessage: 'ERC1155 Already approved!' 
+        }));
+      }
+    } else {
+      // Handle ERC20/ERC777 approvals
+      const approveContract = new ethers.Contract(
+        approveContractAddress,
+        [
+          'function approve(address, uint256)',
+          'function decimals() view returns (uint8)'
+        ],
+        signer
+      );
+
       let approvalAmount;
-
       if (approveTokenQuantity && parseInt(approveTokenQuantity) > 0) {
         try {
           const decimals = await approveContract.decimals();
-          approvalAmount = ethers.BigNumber.from(approveTokenQuantity);
+          approvalAmount = ethers.utils.parseUnits(approveTokenQuantity, decimals);
         } catch (error) {
           console.error('Error getting token decimals:', error);
           approvalAmount = ethers.BigNumber.from(approveTokenQuantity);
@@ -106,19 +147,25 @@ const SwapBox = ({
       }
 
       console.log('Approval amount:', approvalAmount.toString());
-
       const tx = await approveContract.approve(contractAddress, approvalAmount);
 
       const provider = approveContract.provider;
       provider.once(tx.hash, () => {
-        setFormState((prevState: any) => ({ ...prevState, modalMessage: 'Approval successful!' }));
+        setFormState((prevState: any) => ({ 
+          ...prevState, 
+          modalMessage: 'ERC20/ERC777 Approval successful!' 
+        }));
       });
-    } catch (error) {
-      console.error('Error approving token:', error);
-      const reason = parseErrorReason(error);
-      setFormState((prevState: any) => ({ ...prevState, modalMessage: `Error approving token. ${reason}` }));
     }
-  };
+  } catch (error) {
+    console.error('Error approving token:', error);
+    const reason = parseErrorReason(error);
+    setFormState((prevState: any) => ({ 
+      ...prevState, 
+      modalMessage: `Error approving token. ${reason}` 
+    }));
+  }
+};
 
   const handleCompleteSwap = async (swapId: number, swapData: any) => {
     if (!address || !swapContract || !contractAddress) {
@@ -272,7 +319,7 @@ const SwapBox = ({
       <div key={tx.data.swapId} className={`swapBox ${isExpired ? 'expired' : ''}`}>
         <div className="swapContent">
           <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>{tx.initiatorContractName || 'Unknown'} ↔ {tx.acceptorContractName || 'Unknown'}</strong>
+            <strong>{tx.initiatorContractName || 'Name Unknown'} ↔ {tx.acceptorContractName || 'Name Unknown'}</strong>
             <span onClick={() => handleViewDetails(tx.data.swap)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>Show Details</span>
           </p>
           <p><strong>{tx.swapType || 'Unknown'}</strong></p>

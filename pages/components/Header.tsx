@@ -1,5 +1,4 @@
 import React from 'react';
-import { ConnectWallet } from '@thirdweb-dev/react';
 import { 
   MAINNET_CHAIN_ID, 
   SEPOLIA_CHAIN_ID,
@@ -9,8 +8,8 @@ import {
 
 interface HeaderProps {
   address: string | undefined;
-  currentPage: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy';
-  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer') => void;
+  currentPage: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo';
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'swapInfo') => void;
   chainId: number | undefined;
 }
 
@@ -65,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
             </li>
             <li className="navItem" style={{ margin: 0 }}>
               <a
-                className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
+                className={`button ${currentPage === 'initSwap' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('initSwap')}
                 style={{ 
                   background: '#f5f6fd',

@@ -19,6 +19,7 @@ import Disclaimer from './components/Disclaimer';
 import Privacy from './components/Privacy';
 import SwapList from './SwapList';
 import Wallet from './Wallet';
+import SwapInfo from './components/SwapInfo';
 import { ethers } from 'ethers';
 import { 
   mapTokenTypeToEnum, 
@@ -55,7 +56,7 @@ const Swapper: NextPage = () => {
     initiatorTokenId: '',
     acceptorTokenId: ''
   });
-  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy'>('swapList');
+  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo'>('initSwap');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
@@ -133,7 +134,7 @@ const Swapper: NextPage = () => {
       }));
       return;
     }
-  
+
     if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
         (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
         (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
@@ -149,16 +150,24 @@ const Swapper: NextPage = () => {
 
     try {
       // Get token decimals for both parties
-      const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
-      const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
+      const initiatorTokenDecimals = tokenDecimals['initiator'] || 0;
+      const acceptorTokenDecimals = tokenDecimals['acceptor'] || 0;
 
       let parsedInitiatorQuantity = '0';
       let parsedAcceptorQuantity = '0';
 
-      // Parse quantities based on token type
+      // Parse quantities based on token type and decimals
       if (initiatorTokenQuantity && initiatorTokenQuantity !== '0') {
         if (initiatorTokenType === 'ERC1155') {
-          parsedInitiatorQuantity = initiatorTokenQuantity; // Use raw value for ERC1155
+          // For ERC1155, check if we have decimals first
+          if (initiatorTokenDecimals > 0) {
+            parsedInitiatorQuantity = ethers.utils
+              .parseUnits(initiatorTokenQuantity, initiatorTokenDecimals)
+              .toString();
+          } else {
+            // Use raw value if no decimals
+            parsedInitiatorQuantity = initiatorTokenQuantity;
+          }
         } else if (initiatorTokenType === 'ERC20' || initiatorTokenType === 'ERC777') {
           parsedInitiatorQuantity = ethers.utils
             .parseUnits(initiatorTokenQuantity, initiatorTokenDecimals)
@@ -168,7 +177,15 @@ const Swapper: NextPage = () => {
 
       if (acceptorTokenQuantity && acceptorTokenQuantity !== '0') {
         if (acceptorTokenType === 'ERC1155') {
-          parsedAcceptorQuantity = acceptorTokenQuantity; // Use raw value for ERC1155
+          // For ERC1155, check if we have decimals first
+          if (acceptorTokenDecimals > 0) {
+            parsedAcceptorQuantity = ethers.utils
+              .parseUnits(acceptorTokenQuantity, acceptorTokenDecimals)
+              .toString();
+          } else {
+            // Use raw value if no decimals
+            parsedAcceptorQuantity = acceptorTokenQuantity;
+          }
         } else if (acceptorTokenType === 'ERC20' || acceptorTokenType === 'ERC777') {
           parsedAcceptorQuantity = ethers.utils
             .parseUnits(acceptorTokenQuantity, acceptorTokenDecimals)
@@ -297,6 +314,19 @@ const Swapper: NextPage = () => {
                   <div>
                     <h3>Enter Swap Information</h3>
                     <p>As the initiator, provide the following information:</p>
+                    <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)' }}>
+                      For more info on swapping{' '}
+                      <a onClick={() => setCurrentPage('swapInfo')}
+                        style={{ 
+                          display: 'inline', 
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          color: 'inherit',
+                        }}
+                      >
+                        see here
+                      </a>.
+                    </p>
                     <div className="form-grid">
                       <div className='form-box'>
                         <h4>Initiator Information:</h4>
@@ -564,7 +594,7 @@ const Swapper: NextPage = () => {
                         )}
                       </div>
                     </div>
-                    <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)', marginBottom: '2em' }}>
+                    <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)', margin: '2em' }}>
                       By using this site you acknowledge you have read and understand the{' '}
                       <a
                         onClick={() => setCurrentPage('disclaimer')}
@@ -615,6 +645,9 @@ const Swapper: NextPage = () => {
           )}
           {currentPage === 'privacy' && (
             <Privacy />
+          )}
+          {currentPage === 'swapInfo' && (
+            <SwapInfo />
           )}
         </div>
         <Footer setCurrentPage={setCurrentPage} />

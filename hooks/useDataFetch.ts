@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 
+const contractNameCache: { [address: string]: string } = {};
+
 // Fetches the status of a swap
 export const fetchSwapStatus = async (swapContract: any, swapId: number, swapData: any) => {
     try {
@@ -66,14 +68,47 @@ export const fetchInitiatorStatusForOpenSwap = async (swapContract: any, swapId:
 
 // Fetches the name of a contract using its address
 export const fetchContractName = async (contractAddress: string, signer: any) => {
+    // If address is zero address, return ETH
     if (contractAddress === ethers.constants.AddressZero) {
-      return "ETH";
+        return "ETH";
     }
+
+    // Check cache first
+    if (contractNameCache[contractAddress]) {
+        return contractNameCache[contractAddress];
+    }
+
+    // If we have no signer, return unknown
+    if (!signer) {
+        return "Name Unknown";
+    }
+
     try {
-      const contract = new ethers.Contract(contractAddress, ['function name() view returns (string)'], signer);
-      return await contract.name();
+        const contract = new ethers.Contract(
+            contractAddress, 
+            ['function name() view returns (string)'], 
+            signer
+        );
+        
+        // Try to fetch the name with a timeout
+        const name = await Promise.race([
+            contract.name(),
+            new Promise<string>((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 3000)
+            )
+        ]);
+
+        // Cache the result
+        contractNameCache[contractAddress] = name;
+        return name;
     } catch (error) {
-      console.error('Error fetching contract name:', error);
-      return 'Unknown';
+        // Cache the failure to prevent repeated attempts
+        contractNameCache[contractAddress] = 'Name Unknown';
+        return 'Name Unknown';
     }
+};
+
+// Export the cache in case we need to clear it
+export const clearContractNameCache = () => {
+    Object.keys(contractNameCache).forEach(key => delete contractNameCache[key]);
 };

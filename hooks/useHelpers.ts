@@ -100,10 +100,14 @@ export const useFetchTokenDecimals = (formState: any, signer: ethers.Signer | un
   return useCallback(async (contractAddress: string, side: 'initiator' | 'acceptor') => {
     const tokenType = formState[`${side}TokenType`];
 
-    if (tokenType === 'ERC20' || tokenType === 'ERC777') {
+    if (tokenType === 'ERC20' || tokenType === 'ERC777' || tokenType === 'ERC1155') {
       if (signer) {
         try {
-          const contract = new ethers.Contract(contractAddress, ['function decimals() view returns (uint8)'], signer);
+          const contract = new ethers.Contract(
+            contractAddress, 
+            ['function decimals() view returns (uint8)'], 
+            signer
+          );
           const decimals = await contract.decimals();
           setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: decimals }));
 
@@ -115,17 +119,17 @@ export const useFetchTokenDecimals = (formState: any, signer: ethers.Signer | un
             setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: '' }));
           }
         } catch (error) {
-          console.error('Error fetching token decimals:', error);
-          // If decimals() fails, default to raw values
+          console.log(`No decimals found for ${contractAddress}, using raw values`);
+          // If decimals() fails, use raw values without decimal conversion
           setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
-          setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: formState[`${side}TokenQuantity`] || '' }));
+          setCalculatedValue((prevValues: Record<string, string>) => ({ 
+            ...prevValues, 
+            [side]: formState[`${side}TokenQuantity`] || '' 
+          }));
         }
       }
-    } else if (tokenType === 'ERC1155') {
-      // For ERC1155, we don't try to fetch decimals, use raw values
-      setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
-      setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: formState[`${side}TokenQuantity`] || '' }));
     } else {
+      // For other token types or if no signer
       setTokenDecimals((prevDecimals: Record<string, number>) => ({ ...prevDecimals, [side]: 0 }));
       setCalculatedValue((prevValues: Record<string, string>) => ({ ...prevValues, [side]: '' }));
     }
@@ -166,14 +170,24 @@ export const handleTokenQuantityChange = (
   if (isValidNumber(value)) {
     setFormState((prevState: any) => ({ ...prevState, [`${side}TokenQuantity`]: value }));
     
-    // Raw value for ERC1155 or if decimals are 0
-    if (tokenDecimals[side] === 0) {
-      setCalculatedValue((prevValues: Record<string, string>) => ({ 
-        ...prevValues, 
-        [side]: value
-      }));
+    const decimals = tokenDecimals[side];
+    if (decimals > 0) {
+      // Only apply decimal conversion if decimals exist and are greater than 0
+      try {
+        const parsedValue = ethers.utils.parseUnits(value, decimals);
+        setCalculatedValue((prevValues: Record<string, string>) => ({ 
+          ...prevValues, 
+          [side]: parsedValue.toString()
+        }));
+      } catch (error) {
+        console.error('Error parsing value with decimals:', error);
+        setCalculatedValue((prevValues: Record<string, string>) => ({ 
+          ...prevValues, 
+          [side]: value 
+        }));
+      }
     } else {
-      // Use decimals for ERC20 and ERC777
+      // Use raw value if no decimals or decimals is 0
       setCalculatedValue((prevValues: Record<string, string>) => ({ 
         ...prevValues, 
         [side]: value

@@ -25,7 +25,7 @@ const SwapList = ({
   handleViewDetails
 }: {
   address: string | undefined;
-  setCurrentPage: Dispatch<SetStateAction<"initSwap" | "swapList" | "wallet" | "disclaimer" | "privacy">>;
+  setCurrentPage: Dispatch<SetStateAction<"initSwap" | "swapList" | "wallet" | "disclaimer" | "privacy" | "swapInfo">>;
   contractAddress: string;
   swapContract: any;
   signer: any;
