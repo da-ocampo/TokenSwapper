@@ -27,7 +27,7 @@ const Disclaimer = () => {
           and agree to assume them independently.
         </li>
         <li style={{ marginBottom: '1em' }}>
-          <strong>No Guarantees</strong>: The services provided are available "as-is" without any warranties or 
+          <strong>No Guarantees</strong>: The services provided are available &ldquo;as-is&rdquo; without any warranties or 
           guarantees. The developers make no promises regarding the accuracy, reliability, or security of the smart 
           contracts, the site, or any of the services.
         </li>

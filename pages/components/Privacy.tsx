@@ -29,13 +29,13 @@ const Privacy = () => {
       </p>
       <ul style={{ marginLeft: '2em', marginBottom: '1em' }}>
         <li>Basic transaction data essential for processing on the blockchain.</li>
-        <li>Temporary data stored in your browser's local storage to enhance your experience, which is not accessible to our servers.</li>
+        <li>Temporary data stored in your browser&apos;s local storage to enhance your experience, which is not accessible to our servers.</li>
       </ul>
 
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>3. Third-Party Wallet and Blockchain Provider Data</h3>
       <p style={{ marginBottom: '1em' }}>
         We do not control, access, or use any information submitted through your chosen wallet or blockchain provider, 
-        except for the minimal data required to ensure the application's functionality. Any interactions with the blockchain 
+        except for the minimal data required to ensure the application&apos;s functionality. Any interactions with the blockchain 
         (e.g., transactions, balances, account information) are handled solely through your blockchain provider or wallet. 
         Your relationship with your wallet and blockchain provider is governed by their respective privacy policies and 
         terms of service.
