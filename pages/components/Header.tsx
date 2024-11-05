@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="header">
-      <div className="title" style={{ marginRight: '1.5rem' }}>
+      <div className="title">
         <a href="#">
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>P2PSwap</h1>
         </a>

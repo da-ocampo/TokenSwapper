@@ -592,7 +592,11 @@ const Swapper: NextPage = () => {
             </section>
           )}
           {currentPage === 'wallet' && (
-            <Wallet contractAddress={contractAddress} swapContract={swapContract} />
+            <Wallet 
+              contractAddress={contractAddress} 
+              swapContract={swapContract}
+              setFormState={setFormState}
+            />
           )}
           {currentPage === 'swapList' && (
             <SwapList

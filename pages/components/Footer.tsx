@@ -7,7 +7,7 @@ interface FooterProps {
 const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
   return (
     <footer className="footer">
-      <div className="footerContainer" style={{marginBottom: "2em"}}>
+      <div className="footerContainer" style={{marginBottom: "1em"}}>
         <div className="textCenter">
           <a
             onClick={() => setCurrentPage('disclaimer')}

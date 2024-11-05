@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Web3Button, ConnectWallet, useAddress, useContract } from '@thirdweb-dev/react';
+import { Web3Button, ConnectWallet, useAddress } from '@thirdweb-dev/react';
 import { ethers } from 'ethers';
+import { parseErrorReason } from '../hooks/useHelpers';
 
 interface WalletProps {
   contractAddress: string;
   swapContract: any;
+  setFormState: (state: any) => void;
 }
 
-const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract }) => {
+const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract, setFormState }) => {
   const address = useAddress();
   const [walletBalance, setWalletBalance] = useState<string>('0');
 
@@ -19,9 +21,13 @@ const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract }) => {
       } catch (error) {
         console.error('Error fetching wallet balance:', error);
         setWalletBalance('Error');
+        setFormState((prevState: any) => ({
+          ...prevState,
+          modalMessage: 'Error fetching wallet balance. Please try again.'
+        }));
       }
     }
-  }, [swapContract, address]);
+  }, [swapContract, address, setFormState]);
 
   useEffect(() => {
     fetchWalletBalance();
@@ -29,15 +35,56 @@ const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract }) => {
 
   const handleWithdraw = async () => {
     if (!address || !swapContract || !contractAddress) {
-      console.error('Wallet not connected, contract not found, or unsupported network.');
+      setFormState((prevState: any) => ({
+        ...prevState,
+        modalMessage: 'Wallet not connected, contract not found, or unsupported network.'
+      }));
       return;
     }
 
     try {
-      await swapContract.call('withdraw');
-      fetchWalletBalance();
+      const tx = await swapContract.call('withdraw');
+      
+      // Store initial balance before waiting for confirmation
+      const initialBalance = walletBalance;
+      
+      try {
+        await tx.wait();
+        // Get new balance after withdrawal
+        const newBalance = await swapContract.call('balances', [address]);
+        const formattedNewBalance = ethers.utils.formatEther(newBalance);
+        setWalletBalance(formattedNewBalance);
+
+        if (parseFloat(formattedNewBalance) < parseFloat(initialBalance)) {
+          const withdrawnAmount = parseFloat(initialBalance) - parseFloat(formattedNewBalance);
+          setFormState((prevState: any) => ({
+            ...prevState,
+            modalMessage: `Successfully withdrawn ${withdrawnAmount.toFixed(4)} ETH to your wallet!`
+          }));
+        }
+      } catch (waitError) {
+        // Even if wait() fails, check if the balance actually changed
+        const newBalance = await swapContract.call('balances', [address]);
+        const formattedNewBalance = ethers.utils.formatEther(newBalance);
+        setWalletBalance(formattedNewBalance);
+
+        if (parseFloat(formattedNewBalance) < parseFloat(initialBalance)) {
+          const withdrawnAmount = parseFloat(initialBalance) - parseFloat(formattedNewBalance);
+          setFormState((prevState: any) => ({
+            ...prevState,
+            modalMessage: `Successfully withdrawn ${withdrawnAmount.toFixed(4)} ETH to your wallet!`
+          }));
+        } else {
+          throw waitError; // Re-throw if balance didn't change
+        }
+      }
     } catch (error) {
       console.error('Error withdrawing:', error);
+      const reason = parseErrorReason(error);
+      setFormState((prevState: any) => ({
+        ...prevState,
+        modalMessage: `Withdrawal failed: ${reason}. Please try again.`
+      }));
     }
   };
 

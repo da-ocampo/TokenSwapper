@@ -70,6 +70,10 @@ a {
   padding: 2em 0;
 }
 
+.title { 
+  margin-right: 1.5em;
+}
+
 .title h1 {
   margin: 0;
   transition: font-size 0.3s;
@@ -441,159 +445,346 @@ input[type="datetime-local"]::before {
 }
 
 @media only screen and (max-width: 768px) {
-  .swapGrid {
-    grid-template-columns: 1fr;
-    gap: 1em;
-  }
-
-  .toggleButtons {
-    align-items: center;
-    margin-bottom: 1em;
-  }
-
-  .swapContainer {
-    padding-left: 0;
-    width: 100%;
-  }
-
-  .swapBox {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .container, .main-content, .form-group, .swapActions {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .form-group input[type="text"], .form-group select, input[type="text"], select {
-    text-align: center;
-  }
-
-  .modal {
-    width: 90%;
+  .main-content {
+    margin: 0;
     padding: 1em;
-    max-height: 90%;
-    margin: 0 auto;
-    box-sizing: border-box;
-    overflow-y: auto;
-  }
-
-  .modal button {
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
     width: 100%;
-    padding: 1em;
-  }
-  
-  .toggleButtons {
-    display: flex;
-    justify-content: center;
-    align-items: center; 
-    flex-direction: column; 
-    width: 100%; 
-    gap: 1em; 
-  }
-
-  .toggle-button {
-    width: auto;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 1em;
   }
 
   .app-box {
-    width: 90%;
-    margin: 0em;
-    padding: 1em;
+    width: 100%;
+    padding: 0 1em;
   }
 
+  /* Header layout */
   .header {
     flex-direction: column;
     align-items: center;
+    padding: 1em 0;
+    gap: 1em;
+    text-align: center;
   }
 
-  .navItem {
-    margin: 1em;
-  }
-
-  .navbar {
+  .header > div {
+    width: 100%;
+    display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 0.5em;
+    margin: 0;
+  }
+
+  .wallet-address, 
+  .network-info {
+    text-align: center;
+    width: 100%;
+    display: block;
+  }
+
+  /* Navigation */
+  .navbar {
+    width: 100%;
   }
 
   .navList {
-    flex-direction: column;
-    align-items: center;
+    width: 100%;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.75em;
   }
 
   .navItem {
-    margin: 0.5em 0;
+    margin: 0;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 1em;
+    flex-direction: column;
+    gap: 0.15em;
   }
 
   .form-group label {
-    display: none;
+    flex: 0;
+    width: 100%;
+    margin-bottom: 0.15em;
+    font-size: 0.9em;
+    text-align: left;
   }
 
-  .form-group input[type="text"], .form-group select {
+  .form-group input[type="text"],
+  .form-group select,
+  input[type="datetime-local"] {
+    width: 100%;
+    padding: 0.75em;
+    font-size: 16px;
+    height: 45px;
+    margin: 0;
+  }
+
+  /* Toggle buttons */
+  .toggleButtons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    width: 100%;
     padding: 0.5em;
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
-  .swapActions {
+  .toggleButtons button:nth-last-child(-n+2) {
+    grid-column: span 1.5;
+  }
+
+  .toggle-button {
+    width: 100%;
+    padding: 0.5em;
+    font-size: 0.8em;
+    text-align: center;
+    margin: 0;
+    height: auto;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
+    min-height: 44px;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .swapActions button {
-    margin-top: 1em;
-  }
-
-  .swapContent {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .swapContent p {
-    display: block;
-    text-align: left;
-    margin-bottom: 0.5em;
-  }
-
-  .swapContent span {
-    display: block;
-    margin-top: 0.5em;
-    margin-bottom: 0.5em;
-    text-align: left;
-  }
-
-  .swapActions {
-    margin-top: 1em;
-  }
-
-  .header, .navbar, .form-grid {
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
+  }
+
+  .toggle-button.active {
+    opacity: 1;
+    font-weight: bold;
+  }
+
+  /* Swap box */
+  .swapBox {
+    width: 100%;
+    padding: 1em;
+    margin: 0.5em 0;
+  }
+
+  .swapActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    width: 100%;
+  }
+
+  .swapActions button,
+  .swapActions .button {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Form grid */
+  .form-grid {
+    gap: 1.5em;
+    margin-bottom: 1.5em;
+    width: 100%;
+  }
+
+  .form-grid .form-box {
+    padding: 1em;
+    width: 100%;
+  }
+
+  input[type="text"],
+  input[type="datetime-local"],
+  select {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  /* Button */
+  .button, 
+  .modal button,
+  .tw-web3button {
+    width: 100%;
+    padding: 0.75em;
+    height: 45px;
+    font-size: 1em;
+    margin: 0.5em 0;
+  }
+
+  /* Token info box */
+  .token-info-box {
+    width: 100%;
+    margin: 1em 0;
+    padding: 0.75em;
+  }
+
+  /* Modal */
+  .modal {
+    width: 90%;
+    max-height: 85vh;
+    padding: 1.5em;
+    margin: 1em;
+    overflow-y: auto;
+    font-size: 0.9em;
+  }
+
+  .modal p {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    margin: 0.75em 0;
+    word-break: break-all;
+  }
+
+  .modal strong {
+    margin-bottom: 0.25em;
+  }
+
+  .modal h3 {
+    margin-bottom: 1em;
+  }
+
+  .swapBox .token-details {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  .swapBox .show-details {
+    margin-left: 0;
+    margin-top: 0.5em;
+    text-align: right;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .swapContainer {
+    padding: 0;
+  }
+
+  .info-tooltip {
+    max-width: 200px;
+    font-size: 0.9em;
+  }
+  
+  .title {
+    margin-right: 0;
   }
 
   .title h1 {
     font-size: 1.5em;
   }
 
-  .button, .modal button {
-    height: 4em;
+  .form-box {
+    border: none;
+    box-shadow: none;
+    background: transparent;
   }
 
-  .guide, input[type="text"] {
-    width: 100%;
+  .title, 
+  .navList,
+  .wallet-info {
+    margin-bottom: 0.5em;
   }
 
-  .navItem {
+  h3, h4 {
+    margin: 1em 0 0.5em 0;
+    text-align: center;
+  }
+
+  .footer {
+    padding: 1em;
+  }
+
+  .footerContainer {
+    margin-bottom: 1em !important;
+    width: auto;
+  }
+
+  .textCenter {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  .textCenter .toggle-button {
+    padding: 0.5em !important;
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
+
+  .info-icon {
+    vertical-align: middle;
+    margin-left: 0.3em;
+  }
+
+  .disclaimer-text {
+    font-size: 0.85em;
+    margin: 1em 0;
+    text-align: center;
+  }
+
+  .container {
+    padding: 0;
+  }
+
+  .swap-type-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0.5em;
+    margin: 1em 0;
+  }
+
+  .network-info {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.5em;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+
+  .token-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+  }
+
+  .status-display {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
     margin: 0.5em 0;
+  }
+
+  .mb-1 {
+    margin-bottom: 0.5em;
+  }
+
+  .mt-1 {
+    margin-top: 0.5em;
+  }
+
+  .px-1 {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+  }
+
+  .tw-web3button {
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .error-message {
+    font-size: 0.8em;
+    color: red;
+    margin-top: 0.2em;
   }
 }
 
