@@ -103,7 +103,7 @@ const Header: React.FC<HeaderProps> = ({
             </span>
           </>
         ) : (
-          <ConnectWallet />
+          <div></div>
         )}
       </div>
     </header>
