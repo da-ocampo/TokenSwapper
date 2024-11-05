@@ -12,7 +12,7 @@ const SwapInfo = () => {
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>1. What is the Token Swapper?</h3>
       <p style={{ marginBottom: '1em' }}>
         Token Swapper enables direct peer-to-peer token exchanges with the security of an impartial escrow contract. 
-        Two parties (the initiator "pI" and the acceptor "pA") who want to swap tokens can do so safely without requiring 
+        Two parties (the initiator &quot;pI&quot; and the acceptor &quot;pA&quot;) who want to swap tokens can do so safely without requiring 
         trust between parties. These participants typically connect through various communities like Discord, X (Twitter), 
         or Farcaster to arrange their swaps.
       </p>
@@ -44,7 +44,7 @@ const SwapInfo = () => {
 
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>4. Swap Process</h3>
       <p style={{ marginBottom: '0.5em', color: '#FF3B30', fontWeight: 'bold' }}>
-        Important: Initiators can always retrieve their ETH and cancel the swap if the acceptor hasn't completed it.
+        Important: Initiators can always retrieve their ETH and cancel the swap if the acceptor hasn&apos;t completed it.
       </p>
       <ol style={{ marginLeft: '2em', marginBottom: '1em' }}>
         <li style={{ marginBottom: '1em' }}>
@@ -53,7 +53,7 @@ const SwapInfo = () => {
             <li>Future expiry date</li>
             <li>Their token details (contract, type, ID, quantity)</li>
             <li>Desired token details (contract, type, ID, quantity)</li>
-            <li>Acceptor's address (optional for non-NFT swaps)</li>
+            <li>Acceptor&apos;s address (optional for non-NFT swaps)</li>
             <li>Any ETH additions from either side</li>
           </ul>
         </li>
