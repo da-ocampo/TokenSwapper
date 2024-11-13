@@ -1,10 +1,10 @@
 import { NextPage } from 'next';
 import { Web3Button, ConnectWallet, useAddress, useContract, useSigner, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
-import {
-  MAINNET_CONTRACT_ADDRESS,
-  SEPOLIA_CONTRACT_ADDRESS,
-  MAINNET_CHAIN_ID,
+import { 
+  MAINNET_CONTRACT_ADDRESS, 
+  SEPOLIA_CONTRACT_ADDRESS, 
+  MAINNET_CHAIN_ID, 
   SEPOLIA_CHAIN_ID,
   LINEA_MAINNET_ADDRESS,
   LINEA_TESTNET_ADDRESS,
@@ -21,9 +21,9 @@ import SwapList from './SwapList';
 import Wallet from './Wallet';
 import SwapInfo from './components/SwapInfo';
 import { ethers } from 'ethers';
-import {
-  mapTokenTypeToEnum,
-  parseErrorReason,
+import { 
+  mapTokenTypeToEnum, 
+  parseErrorReason, 
   tokenTypeEnumToName,
   useDateInputBlur,
   useFetchTokenDecimals,
@@ -128,20 +128,20 @@ const Swapper: NextPage = () => {
     } = formState;
 
     if (!address || !swapContract || !contractAddress) {
-      setFormState(prevState => ({
-        ...prevState,
-        modalMessage: 'Wallet not connected, contract not found, or unsupported network.'
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Wallet not connected, contract not found, or unsupported network.' 
       }));
       return;
     }
 
     if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
-      (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
-      (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
-      (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress !== LINEA_TESTNET_ADDRESS)) {
-      setFormState(prevState => ({
-        ...prevState,
-        modalMessage: 'Please switch to the correct network for this contract.'
+        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
+        (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
+        (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress !== LINEA_TESTNET_ADDRESS)) {
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Please switch to the correct network for this contract.' 
       }));
       return;
     }
@@ -247,9 +247,9 @@ const Swapper: NextPage = () => {
     } catch (error) {
       console.error('Error initiating Swap:', error);
       const reason = parseErrorReason(error);
-      setFormState(prevState => ({
-        ...prevState,
-        modalMessage: `Error initiating Swap. ${reason}`
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: `Error initiating Swap. ${reason}` 
       }));
     }
   };
@@ -266,27 +266,27 @@ const Swapper: NextPage = () => {
 
     const parsedData = {
       ...swapData,
-      initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId)
-        ? swapData.initiatorTokenId.toString()
+      initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) 
+        ? swapData.initiatorTokenId.toString() 
         : swapData.initiatorTokenId,
-      acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId)
-        ? swapData.acceptorTokenId.toString()
+      acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) 
+        ? swapData.acceptorTokenId.toString() 
         : swapData.acceptorTokenId,
-      initiatorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.initiatorTokenQuantity)
+      initiatorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.initiatorTokenQuantity) 
         ? ethers.utils.formatUnits(swapData.initiatorTokenQuantity, initiatorTokenDecimals)
         : swapData.initiatorTokenQuantity,
-      acceptorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.acceptorTokenQuantity)
+      acceptorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.acceptorTokenQuantity) 
         ? ethers.utils.formatUnits(swapData.acceptorTokenQuantity, acceptorTokenDecimals)
         : swapData.acceptorTokenQuantity,
-      initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion)
-        ? ethers.utils.formatEther(swapData.initiatorETHPortion)
+      initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) 
+        ? ethers.utils.formatEther(swapData.initiatorETHPortion) 
         : swapData.initiatorETHPortion,
-      acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion)
-        ? ethers.utils.formatEther(swapData.acceptorETHPortion)
+      acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion) 
+        ? ethers.utils.formatEther(swapData.acceptorETHPortion) 
         : swapData.acceptorETHPortion,
       expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(),
     };
-
+    
     setModalData(parsedData);
     setShowModal(true);
   };
@@ -294,7 +294,7 @@ const Swapper: NextPage = () => {
   return (
     <div className={styles.main}>
       <div className="app-box">
-        <Header
+        <Header 
           address={address}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
@@ -352,8 +352,8 @@ const Swapper: NextPage = () => {
                     <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)' }}>
                       For more info on swapping{' '}
                       <a onClick={() => setCurrentPage('swapInfo')}
-                        style={{
-                          display: 'inline',
+                        style={{ 
+                          display: 'inline', 
                           textDecoration: 'underline',
                           cursor: 'pointer',
                           color: 'inherit',
@@ -386,22 +386,11 @@ const Swapper: NextPage = () => {
                         {formState.initiatorTokenType !== 'NONE' && (
                           <>
                             <div className="form-group">
-                              <label htmlFor="expiryDate">Expiry Date:</label>
-                              <input
-                                type="datetime-local"
-                                name="expiryDate"
-                                value={formState.expiryDate}
-                                onChange={(e) => setFormState({ ...formState, expiryDate: e.target.value })}
-                                min={new Date().toISOString().slice(0, 16)}
-                                ref={dateInputRef}
-                              />
-                            </div>
-                            <div className="form-group">
                               <label htmlFor="initiatorERCContract">Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="initiatorERCContract"
-                                placeholder="Token Contract Address"
+                                placeholder="Initiator's Token Contract Address"
                                 value={formState.initiatorERCContract || ''}
                                 onChange={(e) => handleERCContractChange(e.target.value, 'initiator', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
@@ -413,19 +402,19 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
-                                    placeholder="Token Quantity"
+                                    placeholder="Initiator's Token Quantity"
                                     value={formState.initiatorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
                                 </div>
                                 {formState.initiatorTokenQuantity && (
-                                  <div className="token-info-box" style={{
-                                    border: '1px solid #ccc',
-                                    padding: '12px',
-                                    marginTop: '8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#f9f9f9',
-                                    textAlign: 'left'
+                                  <div className="token-info-box" style={{ 
+                                    border: '1px solid #ccc', 
+                                    padding: '12px', 
+                                    marginTop: '8px', 
+                                    borderRadius: '4px', 
+                                    backgroundColor: '#f9f9f9', 
+                                    textAlign: 'left' 
                                   }}>
                                     <p><strong>Contract:</strong> <em>{contractNames['initiator'] || 'Loading...'}</em></p>
                                     <p><strong>Token Decimals:</strong> <em>{tokenDecimals['initiator'] || 18}</em></p>
@@ -446,7 +435,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
-                                    placeholder="Token ID"
+                                    placeholder="Initiator's Token ID"
                                     value={formState.initiatorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                                   />
@@ -459,7 +448,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
-                                    placeholder="Token ID"
+                                    placeholder="Initiator's Token ID"
                                     value={formState.initiatorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, initiatorTokenId: e.target.value })}
                                   />
@@ -469,7 +458,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
-                                    placeholder="Token Quantity"
+                                    placeholder="Initiator's Token Quantity"
                                     value={formState.initiatorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'initiator', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
@@ -479,14 +468,22 @@ const Swapper: NextPage = () => {
                           </>
                         )}
                         <div className="form-group">
-                          <label htmlFor="initiatorETHPortion">Initiator&apos;s ETH Portion:</label>
-                          <input
-                            type="text"
-                            name="initiatorETHPortion"
-                            placeholder="Initiator's ETH Portion"
-                            value={formState.initiatorETHPortion || ''}
-                            onChange={(e) => handleETHPortionChange(e.target.value, 'initiator', setFormState)}
-                          />
+                          {formState.acceptorETHPortion && formState.acceptorETHPortion !== '0' ? (
+                            <div className="error-message" style={{ color: '#2B3C5C' }}>
+                              ETH contribution not allowed when acceptor is contributing ETH
+                            </div>
+                          ) : (
+                            <>
+                              <label htmlFor="initiatorETHPortion">ETH Portion:</label>
+                              <input
+                                type="text"
+                                name="initiatorETHPortion"
+                                placeholder="Initiator's ETH Portion"
+                                value={formState.initiatorETHPortion || ''}
+                                onChange={(e) => handleETHPortionChange(e.target.value, 'initiator', setFormState)}
+                              />
+                            </>
+                          )}
                         </div>
                         {formState.initiatorETHPortion && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
@@ -495,20 +492,61 @@ const Swapper: NextPage = () => {
                             <p><em><strong>Gwei Value:</strong> {ethers.utils.parseUnits(formState.initiatorETHPortion, 'gwei').toString()}</em></p>
                           </div>
                         )}
+                        <div className="form-group">
+                          <label htmlFor="expiryDate">Expiry Date:</label>
+                          <input
+                            type="datetime-local"
+                            name="expiryDate"
+                            value={formState.expiryDate}
+                            onChange={(e) => setFormState({ ...formState, expiryDate: e.target.value })}
+                            min={new Date().toISOString().slice(0, 16)}
+                            ref={dateInputRef}
+                          />
+                        </div>
                       </div>
 
                       <div className='form-box'>
                         <h4>Acceptor Information:</h4>
-                        <div className="form-group">
-                          <label htmlFor="acceptorAddress">Acceptor&apos;s Wallet Address:</label>
-                          <input
-                            type="text"
-                            name="acceptorAddress"
-                            placeholder="Acceptor's Wallet Address"
-                            value={formState.acceptorAddress || ''}
-                            onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
-                          />
+                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                const newAddress = isChecked ? '0x0000000000000000000000000000000000000000' : '';
+                                const currentTokenType = formState.acceptorTokenType;
+                                
+                                const newTokenType = isChecked && 
+                                  (currentTokenType !== 'ERC20' && currentTokenType !== 'ERC777') 
+                                  ? 'ERC20' 
+                                  : currentTokenType;
+
+                                const newETHPortion = isChecked ? '' : formState.acceptorETHPortion;
+                                
+                                setFormState({
+                                  ...formState,
+                                  acceptorAddress: newAddress,
+                                  acceptorTokenType: newTokenType,
+                                  acceptorETHPortion: newETHPortion
+                                });
+                              }}
+                            />
+                            Anyone can accept the swap
+                          </label>
                         </div>
+                        {formState.acceptorAddress !== '0x0000000000000000000000000000000000000000' && (
+                          <div className="form-group">
+                            <label htmlFor="acceptorAddress">Wallet Address:</label>
+                            <input
+                              type="text"
+                              name="acceptorAddress"
+                              placeholder="Acceptor's Wallet Address"
+                              value={formState.acceptorAddress || ''}
+                              onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
+                            />
+                          </div>
+                        )}
                         <div className="form-group">
                           <label htmlFor="acceptorTokenType">Token Type:</label>
                           <select
@@ -557,7 +595,7 @@ const Swapper: NextPage = () => {
                               <input
                                 type="text"
                                 name="acceptorERCContract"
-                                placeholder="Token Contract Address"
+                                placeholder="Acceptor's Token Contract Address"
                                 value={formState.acceptorERCContract || ''}
                                 onChange={(e) => handleERCContractChange(e.target.value, 'acceptor', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
@@ -569,19 +607,19 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
-                                    placeholder="Token Quantity"
+                                    placeholder="Acceptor's Token Quantity"
                                     value={formState.acceptorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
                                 </div>
                                 {formState.acceptorTokenQuantity && (
-                                  <div className="token-info-box" style={{
-                                    border: '1px solid #ccc',
-                                    padding: '12px',
-                                    marginTop: '8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#f9f9f9',
-                                    textAlign: 'left'
+                                  <div className="token-info-box" style={{ 
+                                    border: '1px solid #ccc', 
+                                    padding: '12px', 
+                                    marginTop: '8px', 
+                                    borderRadius: '4px', 
+                                    backgroundColor: '#f9f9f9', 
+                                    textAlign: 'left' 
                                   }}>
                                     <p><strong>Contract:</strong> <em>{contractNames['acceptor'] || 'Loading...'}</em></p>
                                     <p><strong>Token Decimals:</strong> <em>{tokenDecimals['acceptor'] || 18}</em></p>
@@ -602,7 +640,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
-                                    placeholder="Token ID"
+                                    placeholder="Acceptor's Token ID"
                                     value={formState.acceptorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                                   />
@@ -615,7 +653,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
-                                    placeholder="Token ID"
+                                    placeholder="Acceptor's Token ID"
                                     value={formState.acceptorTokenId || ''}
                                     onChange={(e) => setFormState({ ...formState, acceptorTokenId: e.target.value })}
                                   />
@@ -625,7 +663,7 @@ const Swapper: NextPage = () => {
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
-                                    placeholder="Token Quantity"
+                                    placeholder="Acceptor's Token Quantity"
                                     value={formState.acceptorTokenQuantity || ''}
                                     onChange={(e) => handleTokenQuantityChange(e.target.value, 'acceptor', setFormState, tokenDecimals, setCalculatedValue)}
                                   />
@@ -635,14 +673,22 @@ const Swapper: NextPage = () => {
                           </>
                         )}
                         <div className="form-group">
-                          <label htmlFor="acceptorETHPortion">Acceptor&apos;s ETH Portion:</label>
-                          <input
-                            type="text"
-                            name="acceptorETHPortion"
-                            placeholder="Acceptor's ETH Portion"
-                            value={formState.acceptorETHPortion || ''}
-                            onChange={(e) => handleETHPortionChange(e.target.value, 'acceptor', setFormState)}
-                          />
+                          {formState.initiatorETHPortion && formState.initiatorETHPortion !== '0' ? (
+                            <div className="error-message" style={{ color: '#2B3C5C' }}>
+                              ETH contribution not allowed when initiator is contributing ETH
+                            </div>
+                          ) : (
+                            <>
+                              <label htmlFor="acceptorETHPortion">ETH Portion:</label>
+                              <input
+                                type="text"
+                                name="acceptorETHPortion"
+                                placeholder="Acceptor's ETH Portion"
+                                value={formState.acceptorETHPortion || ''}
+                                onChange={(e) => handleETHPortionChange(e.target.value, 'acceptor', setFormState)}
+                              />
+                            </>
+                          )}
                         </div>
                         {formState.acceptorETHPortion && formState.acceptorETHPortion !== '0' && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
@@ -657,8 +703,8 @@ const Swapper: NextPage = () => {
                       By using this site you acknowledge you have read and understand the{' '}
                       <a
                         onClick={() => setCurrentPage('disclaimer')}
-                        style={{
-                          display: 'inline',
+                        style={{ 
+                          display: 'inline', 
                           textDecoration: 'underline',
                           cursor: 'pointer',
                           color: 'inherit',
@@ -681,8 +727,8 @@ const Swapper: NextPage = () => {
             </section>
           )}
           {currentPage === 'wallet' && (
-            <Wallet
-              contractAddress={contractAddress}
+            <Wallet 
+              contractAddress={contractAddress} 
               swapContract={swapContract}
               setFormState={setFormState}
             />
