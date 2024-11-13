@@ -82,13 +82,33 @@ const SwapInfo = () => {
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>5. Verified Contracts</h3>
       <p style={{ marginBottom: '0.5em' }}>Ethereum Network:</p>
       <ul style={{ listStyleType: 'none', marginBottom: '1em', marginLeft: '2em' }}>
-        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}>0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</code></li>
-        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}>0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</code></li>
+        <li>Mainnet: <a 
+          href="https://etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ backgroundColor: '#f5f5f5', padding: '2px 4px', textDecoration: 'none', color: 'inherit' }}
+        >0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</a></li>
+        <li>Sepolia: <a 
+          href="https://sepolia.etherscan.io/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ backgroundColor: '#f5f5f5', padding: '2px 4px', textDecoration: 'none', color: 'inherit' }}
+        >0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</a></li>
       </ul>
       <p style={{ marginBottom: '0.5em' }}>Linea Network:</p>
       <ul style={{ listStyleType: 'none', marginBottom: '1em', marginLeft: '2em' }}>
-        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}>0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</code></li>
-        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}>0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</code></li>
+        <li>Mainnet: <a 
+          href="https://lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ backgroundColor: '#f5f5f5', padding: '2px 4px', textDecoration: 'none', color: 'inherit' }}
+        >0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</a></li>
+        <li>Sepolia: <a 
+          href="https://sepolia.lineascan.build/address/0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ backgroundColor: '#f5f5f5', padding: '2px 4px', textDecoration: 'none', color: 'inherit' }}
+        >0x2c8AD0Ac6CA91b3A2650bEf877d2d133Ef13d8db</a></li>
       </ul>
     </section>
   );
