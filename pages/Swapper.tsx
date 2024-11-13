@@ -304,10 +304,45 @@ const Swapper: NextPage = () => {
           {currentPage === 'initSwap' && (
             <section id="initSwap" style={{ textAlign: 'center', marginBottom: '1em' }}>
               <div>
-                {!address && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                    <h3 style={{ textAlign: 'center', marginBottom: '1em' }}>Connect Your Wallet</h3>
-                    <ConnectWallet />
+              {!address && (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center',
+                    minHeight: '60vh',
+                    justifyContent: 'center',
+                    padding: '2em'
+                  }}>
+                    <h1 
+                      style={{ 
+                        fontSize: '3.5rem',
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(-45deg, #0066FF, #0052CC, #003D99, #0066FF)',
+                        backgroundSize: '300% 300%',
+                        animation: 'gradient 10s ease infinite',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        marginBottom: '0.5em'
+                      }}
+                    >
+                      Welcome to P2PSwap
+                    </h1>
+                    <p style={{ 
+                      color: '#2B3C5C',
+                      fontSize: '1.1rem',
+                      lineHeight: '1.6',
+                      maxWidth: '800px',
+                      textAlign: 'center',
+                      marginBottom: '2em',
+                      opacity: 0.9
+                    }}>
+                      Please connect your wallet to access the swapping functionality where you can execute peer-to-peer token exchanges, 
+                      view your initiated swaps, manage swaps offered to you, and discover open swaps available for anyone to accept.<br></br> 
+                      P2PSwap enables direct peer-to-peer token exchanges with the security of an impartial escrow contract.
+                    </p>
+                    <div style={{ transform: 'scale(1.1)', transition: 'transform 0.3s ease' }}>
+                      <ConnectWallet />
+                    </div>
                   </div>
                 )}
                 {address && (
@@ -331,7 +366,7 @@ const Swapper: NextPage = () => {
                       <div className='form-box'>
                         <h4>Initiator Information:</h4>
                         <div className="form-group">
-                          <label htmlFor="initiatorTokenType">Initiator&apos;s Token Type:</label>
+                          <label htmlFor="initiatorTokenType">Token Type:</label>
                           <select
                             name="initiatorTokenType"
                             value={formState.initiatorTokenType || 'NONE'}
@@ -341,7 +376,7 @@ const Swapper: NextPage = () => {
                               setFormState({ ...formState, initiatorTokenType: tokenType, initiatorERCContract: ercContract });
                             }}
                           >
-                            <option value="NONE">None</option>
+                            <option value="NONE">ETH Only</option>
                             <option value="ERC20">ERC20</option>
                             <option value="ERC777">ERC777</option>
                             <option value="ERC721">ERC721</option>
@@ -362,7 +397,7 @@ const Swapper: NextPage = () => {
                               />
                             </div>
                             <div className="form-group">
-                              <label htmlFor="initiatorERCContract">Initiator&apos;s Token Contract Address:</label>
+                              <label htmlFor="initiatorERCContract">Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="initiatorERCContract"
@@ -374,7 +409,7 @@ const Swapper: NextPage = () => {
                             {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
+                                  <label htmlFor="initiatorTokenQuantity">Token Quantity:</label>
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
@@ -407,7 +442,7 @@ const Swapper: NextPage = () => {
                             ) : formState.initiatorTokenType === 'ERC721' ? (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
+                                  <label htmlFor="initiatorTokenId">Token ID:</label>
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
@@ -420,7 +455,7 @@ const Swapper: NextPage = () => {
                             ) : formState.initiatorTokenType === 'ERC1155' && (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="initiatorTokenId">Initiator&apos;s Token ID:</label>
+                                  <label htmlFor="initiatorTokenId">Token ID:</label>
                                   <input
                                     type="text"
                                     name="initiatorTokenId"
@@ -430,7 +465,7 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 <div className="form-group">
-                                  <label htmlFor="initiatorTokenQuantity">Initiator&apos;s Token Quantity:</label>
+                                  <label htmlFor="initiatorTokenQuantity">Token Quantity:</label>
                                   <input
                                     type="text"
                                     name="initiatorTokenQuantity"
@@ -448,7 +483,7 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="initiatorETHPortion"
-                            placeholder="ETH Portion"
+                            placeholder="Initiator's ETH Portion"
                             value={formState.initiatorETHPortion || ''}
                             onChange={(e) => handleETHPortionChange(e.target.value, 'initiator', setFormState)}
                           />
@@ -461,6 +496,7 @@ const Swapper: NextPage = () => {
                           </div>
                         )}
                       </div>
+
                       <div className='form-box'>
                         <h4>Acceptor Information:</h4>
                         <div className="form-group">
@@ -468,33 +504,56 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="acceptorAddress"
-                            placeholder="Wallet Address"
+                            placeholder="Acceptor's Wallet Address"
                             value={formState.acceptorAddress || ''}
                             onChange={(e) => setFormState({ ...formState, acceptorAddress: e.target.value })}
                           />
                         </div>
                         <div className="form-group">
-                          <label htmlFor="acceptorTokenType">Acceptor&apos;s Token Type:</label>
+                          <label htmlFor="acceptorTokenType">Token Type:</label>
                           <select
                             name="acceptorTokenType"
                             value={formState.acceptorTokenType || 'NONE'}
                             onChange={(e) => {
                               const tokenType = e.target.value;
                               const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
-                              setFormState({ ...formState, acceptorTokenType: tokenType, acceptorERCContract: ercContract });
+                              
+                              if (formState.acceptorAddress === '0x0000000000000000000000000000000000000000' &&
+                                  (tokenType !== 'ERC20' && tokenType !== 'ERC777')) {
+                                setFormState(prevState => ({ 
+                                  ...prevState, 
+                                  modalMessage: 'Open swaps can only accept ERC20 or ERC777 tokens. Please select a different token type or specify an acceptor address.' 
+                                }));
+                                return;
+                              }
+                              
+                              setFormState({ 
+                                ...formState, 
+                                acceptorTokenType: tokenType,
+                                acceptorERCContract: tokenType === 'NONE' ? ethers.constants.AddressZero : formState.acceptorERCContract
+                              });
                             }}
                           >
-                            <option value="NONE">None</option>
-                            <option value="ERC20">ERC20</option>
-                            <option value="ERC777">ERC777</option>
-                            <option value="ERC721">ERC721</option>
-                            <option value="ERC1155">ERC1155</option>
+                            {formState.acceptorAddress === '0x0000000000000000000000000000000000000000' ? (
+                              <>
+                                <option value="ERC20">ERC20</option>
+                                <option value="ERC777">ERC777</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="NONE">None</option>
+                                <option value="ERC20">ERC20</option>
+                                <option value="ERC777">ERC777</option>
+                                <option value="ERC721">ERC721</option>
+                                <option value="ERC1155">ERC1155</option>
+                              </>
+                            )}
                           </select>
                         </div>
                         {formState.acceptorTokenType !== 'NONE' && (
                           <>
                             <div className="form-group">
-                              <label htmlFor="acceptorERCContract">Acceptor&apos;s Token Contract Address:</label>
+                              <label htmlFor="acceptorERCContract">Token Contract Address:</label>
                               <input
                                 type="text"
                                 name="acceptorERCContract"
@@ -506,7 +565,7 @@ const Swapper: NextPage = () => {
                             {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
+                                  <label htmlFor="acceptorTokenQuantity">Token Quantity:</label>
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
@@ -539,7 +598,7 @@ const Swapper: NextPage = () => {
                             ) : formState.acceptorTokenType === 'ERC721' ? (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
+                                  <label htmlFor="acceptorTokenId">Token ID:</label>
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
@@ -552,7 +611,7 @@ const Swapper: NextPage = () => {
                             ) : formState.acceptorTokenType === 'ERC1155' && (
                               <>
                                 <div className="form-group">
-                                  <label htmlFor="acceptorTokenId">Acceptor&apos;s Token ID:</label>
+                                  <label htmlFor="acceptorTokenId">Token ID:</label>
                                   <input
                                     type="text"
                                     name="acceptorTokenId"
@@ -562,7 +621,7 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 <div className="form-group">
-                                  <label htmlFor="acceptorTokenQuantity">Acceptor&apos;s Token Quantity:</label>
+                                  <label htmlFor="acceptorTokenQuantity">Token Quantity:</label>
                                   <input
                                     type="text"
                                     name="acceptorTokenQuantity"
@@ -580,12 +639,12 @@ const Swapper: NextPage = () => {
                           <input
                             type="text"
                             name="acceptorETHPortion"
-                            placeholder="ETH Portion"
+                            placeholder="Acceptor's ETH Portion"
                             value={formState.acceptorETHPortion || ''}
                             onChange={(e) => handleETHPortionChange(e.target.value, 'acceptor', setFormState)}
                           />
                         </div>
-                        {formState.acceptorETHPortion && (
+                        {formState.acceptorETHPortion && formState.acceptorETHPortion !== '0' && (
                           <div className="token-info-box" style={{ border: '1px solid #ccc', padding: '8px', marginTop: '8px', borderRadius: '4px', backgroundColor: '#f9f9f9', textAlign: 'left' }}>
                             <p><strong>Entered Amount:</strong> <em>{formState.acceptorETHPortion}</em></p>
                             <p><em><strong>Wei Value:</strong> {ethers.utils.parseEther(formState.acceptorETHPortion).toString()}</em></p>
@@ -659,8 +718,8 @@ const Swapper: NextPage = () => {
           <div style={{ textAlign: 'left' }}>
             <p><strong>Initiator Wallet Address:</strong> {modalData.initiator}</p>
             <p><strong>Acceptor Wallet Address:</strong> {modalData.acceptor}</p>
-            <p><strong>Initiator&apos;s Contract Address:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorERCContract}</p>
-            <p><strong>Acceptor&apos;s Contract Address:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorERCContract}</p>
+            <p><strong>Contract Address:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorERCContract}</p>
+            <p><strong>Contract Address:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorERCContract}</p>
             <p><strong>Initiator Token ID:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenId}</p>
             <p><strong>Acceptor Token ID:</strong> {modalData.acceptorTokenType === 0 ? 'N/A (None)' : modalData.acceptorTokenId}</p>
             <p><strong>Initiator Token Quantity:</strong> {modalData.initiatorTokenType === 0 ? 'N/A (None)' : modalData.initiatorTokenQuantity}</p>
