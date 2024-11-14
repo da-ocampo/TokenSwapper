@@ -135,6 +135,22 @@ const Swapper: NextPage = () => {
       return;
     }
 
+    if (Math.floor(new Date(expiryDate).getTime() / 1000) < Math.floor(Date.now() / 1000)) {
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Swap expiry date cannot be in the past' 
+      }));
+      return;
+    }
+
+    if (initiatorTokenType === 'NONE' && acceptorTokenType === 'NONE') {
+      setFormState(prevState => ({ 
+        ...prevState, 
+        modalMessage: 'Cannot initiate a swap where both parties are only exchanging ETH' 
+      }));
+      return;
+    }
+
     if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
         (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
         (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
@@ -263,7 +279,28 @@ const Swapper: NextPage = () => {
   const handleViewDetails = (swapData: any) => {
     const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
     const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
-
+  
+    const handleTokenQuantity = (quantity: any, tokenType: number, decimals: number) => {
+      if (!quantity) return '0';
+      
+      // For ERC1155 (type 4), if no decimals, use raw value
+      if (tokenType === 4 && decimals === 0) {
+        return ethers.BigNumber.isBigNumber(quantity) ? quantity.toString() : quantity;
+      }
+  
+      // For ERC20 (type 1) and ERC777 (type 2), always format with decimals
+      if ((tokenType === 1 || tokenType === 2) && ethers.BigNumber.isBigNumber(quantity)) {
+        const formatted = ethers.utils.formatUnits(quantity, decimals);
+        // Remove trailing zeros after decimal point
+        return formatted.replace(/\.?0+$/, '');
+      }
+  
+      // For all other cases
+      return ethers.BigNumber.isBigNumber(quantity) 
+        ? quantity.toString() 
+        : quantity;
+    };
+  
     const parsedData = {
       ...swapData,
       initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) 
@@ -272,12 +309,16 @@ const Swapper: NextPage = () => {
       acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) 
         ? swapData.acceptorTokenId.toString() 
         : swapData.acceptorTokenId,
-      initiatorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.initiatorTokenQuantity) 
-        ? ethers.utils.formatUnits(swapData.initiatorTokenQuantity, initiatorTokenDecimals)
-        : swapData.initiatorTokenQuantity,
-      acceptorTokenQuantity: ethers.BigNumber.isBigNumber(swapData.acceptorTokenQuantity) 
-        ? ethers.utils.formatUnits(swapData.acceptorTokenQuantity, acceptorTokenDecimals)
-        : swapData.acceptorTokenQuantity,
+      initiatorTokenQuantity: handleTokenQuantity(
+        swapData.initiatorTokenQuantity,
+        swapData.initiatorTokenType,
+        tokenDecimals['initiator'] || 18
+      ),
+      acceptorTokenQuantity: handleTokenQuantity(
+        swapData.acceptorTokenQuantity,
+        swapData.acceptorTokenType,
+        tokenDecimals['acceptor'] || 18
+      ),
       initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) 
         ? ethers.utils.formatEther(swapData.initiatorETHPortion) 
         : swapData.initiatorETHPortion,
@@ -395,7 +436,7 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'initiator', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
                             </div>
-                            {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
+                            {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' || formState.initiatorTokenType === 'ERC1155' ? (
                               <>
                                 <div className="form-group">
                                   <label htmlFor="initiatorTokenQuantity">Token Quantity:</label>
@@ -509,6 +550,14 @@ const Swapper: NextPage = () => {
                         <h4>Acceptor Information:</h4>
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <label>
+                            Open Swap
+                            <>
+                              <span className="info-icon">?</span>
+                              <div className="info-tooltip">
+                                A swap where the acceptor address is set to the zero address means that the swap can be accepted by anyone.
+                              </div>
+                            </>
+                          </label>
                             <input
                               type="checkbox"
                               checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
@@ -532,8 +581,6 @@ const Swapper: NextPage = () => {
                                 });
                               }}
                             />
-                            Anyone can accept the swap
-                          </label>
                         </div>
                         {formState.acceptorAddress !== '0x0000000000000000000000000000000000000000' && (
                           <div className="form-group">
@@ -579,7 +626,7 @@ const Swapper: NextPage = () => {
                               </>
                             ) : (
                               <>
-                                <option value="NONE">None</option>
+                                <option value="NONE">ETH Only</option>
                                 <option value="ERC20">ERC20</option>
                                 <option value="ERC777">ERC777</option>
                                 <option value="ERC721">ERC721</option>
@@ -600,7 +647,7 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'acceptor', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
                             </div>
-                            {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
+                            {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777'  || formState.acceptorTokenType === 'ERC1155' ? (
                               <>
                                 <div className="form-group">
                                   <label htmlFor="acceptorTokenQuantity">Token Quantity:</label>
