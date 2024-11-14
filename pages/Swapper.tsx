@@ -436,7 +436,7 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'initiator', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
                             </div>
-                            {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' || formState.initiatorTokenType === 'ERC1155' ? (
+                            {formState.initiatorTokenType === 'ERC20' || formState.initiatorTokenType === 'ERC777' ? (
                               <>
                                 <div className="form-group">
                                   <label htmlFor="initiatorTokenQuantity">Token Quantity:</label>
@@ -558,29 +558,29 @@ const Swapper: NextPage = () => {
                               </div>
                             </>
                           </label>
-                            <input
-                              type="checkbox"
-                              checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                const newAddress = isChecked ? '0x0000000000000000000000000000000000000000' : '';
-                                const currentTokenType = formState.acceptorTokenType;
-                                
-                                const newTokenType = isChecked && 
-                                  (currentTokenType !== 'ERC20' && currentTokenType !== 'ERC777') 
-                                  ? 'ERC20' 
-                                  : currentTokenType;
+                          <input
+                            type="checkbox"
+                            checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              const newAddress = isChecked ? '0x0000000000000000000000000000000000000000' : '';
+                              const currentTokenType = formState.acceptorTokenType;
+                              
+                              const newTokenType = isChecked && 
+                                (currentTokenType !== 'ERC20' && currentTokenType !== 'ERC777' && currentTokenType !== 'ERC1155') 
+                                ? 'ERC20' 
+                                : currentTokenType;
 
-                                const newETHPortion = isChecked ? '' : formState.acceptorETHPortion;
-                                
-                                setFormState({
-                                  ...formState,
-                                  acceptorAddress: newAddress,
-                                  acceptorTokenType: newTokenType,
-                                  acceptorETHPortion: newETHPortion
-                                });
-                              }}
-                            />
+                              const newETHPortion = isChecked ? '' : formState.acceptorETHPortion;
+                              
+                              setFormState({
+                                ...formState,
+                                acceptorAddress: newAddress,
+                                acceptorTokenType: newTokenType,
+                                acceptorETHPortion: newETHPortion
+                              });
+                            }}
+                          />
                         </div>
                         {formState.acceptorAddress !== '0x0000000000000000000000000000000000000000' && (
                           <div className="form-group">
@@ -604,10 +604,10 @@ const Swapper: NextPage = () => {
                               const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
                               
                               if (formState.acceptorAddress === '0x0000000000000000000000000000000000000000' &&
-                                  (tokenType !== 'ERC20' && tokenType !== 'ERC777')) {
+                                  (tokenType !== 'ERC20' && tokenType !== 'ERC777' && tokenType !== 'ERC1155')) {
                                 setFormState(prevState => ({ 
                                   ...prevState, 
-                                  modalMessage: 'Open swaps can only accept ERC20 or ERC777 tokens. Please select a different token type or specify an acceptor address.' 
+                                  modalMessage: 'Open swaps can only accept ERC20, ERC777, or ERC1155 tokens. Please select a different token type or specify an acceptor address.' 
                                 }));
                                 return;
                               }
@@ -623,6 +623,7 @@ const Swapper: NextPage = () => {
                               <>
                                 <option value="ERC20">ERC20</option>
                                 <option value="ERC777">ERC777</option>
+                                <option value="ERC1155">ERC1155</option>
                               </>
                             ) : (
                               <>
@@ -647,7 +648,7 @@ const Swapper: NextPage = () => {
                                 onChange={(e) => handleERCContractChange(e.target.value, 'acceptor', setFormState, fetchTokenDecimals, setTokenDecimals, setCalculatedValue)}
                               />
                             </div>
-                            {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777'  || formState.acceptorTokenType === 'ERC1155' ? (
+                            {formState.acceptorTokenType === 'ERC20' || formState.acceptorTokenType === 'ERC777' ? (
                               <>
                                 <div className="form-group">
                                   <label htmlFor="acceptorTokenQuantity">Token Quantity:</label>
