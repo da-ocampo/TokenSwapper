@@ -217,3 +217,82 @@ export const useFetchTokenDecimalsEffect = (
     if (formState.acceptorERCContract) fetchTokenDecimals(formState.acceptorERCContract, 'acceptor');
   }, [formState.initiatorERCContract, formState.acceptorERCContract, fetchTokenDecimals]);
 };
+
+export const handleSwapDetailsView = (
+  swapData: any, 
+  tokenDecimals: { [key: string]: number }, 
+  setModalData: (data: any) => void,
+  setShowModal: (show: boolean) => void
+) => {
+  const handleTokenQuantity = (quantity: any, tokenType: number, decimals: number) => {
+    if (!quantity) return '0';
+    
+    // For ERC1155 (type 4), if no decimals, use raw value
+    if (tokenType === 4 && decimals === 0) {
+      return ethers.BigNumber.isBigNumber(quantity) ? quantity.toString() : quantity;
+    }
+
+    // For ERC20 (type 1) and ERC777 (type 2), always format with decimals
+    if ((tokenType === 1 || tokenType === 2) && ethers.BigNumber.isBigNumber(quantity)) {
+      const formatted = ethers.utils.formatUnits(quantity, decimals);
+      // Remove trailing zeros after decimal point
+      return formatted.replace(/\.?0+$/, '');
+    }
+
+    // For all other cases
+    return ethers.BigNumber.isBigNumber(quantity) 
+      ? quantity.toString() 
+      : quantity;
+  };
+
+  const parsedData = {
+    ...swapData,
+    initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) 
+      ? swapData.initiatorTokenId.toString() 
+      : swapData.initiatorTokenId,
+    acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) 
+      ? swapData.acceptorTokenId.toString() 
+      : swapData.acceptorTokenId,
+    initiatorTokenQuantity: handleTokenQuantity(
+      swapData.initiatorTokenQuantity,
+      swapData.initiatorTokenType,
+      tokenDecimals['initiator'] || 18
+    ),
+    acceptorTokenQuantity: handleTokenQuantity(
+      swapData.acceptorTokenQuantity,
+      swapData.acceptorTokenType,
+      tokenDecimals['acceptor'] || 18
+    ),
+    initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) 
+      ? ethers.utils.formatEther(swapData.initiatorETHPortion) 
+      : swapData.initiatorETHPortion,
+    acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion) 
+      ? ethers.utils.formatEther(swapData.acceptorETHPortion) 
+      : swapData.acceptorETHPortion,
+    expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(),
+  };
+  
+  setModalData(parsedData);
+  setShowModal(true);
+};
+
+export const handleOpenSwapChange = (
+  isChecked: boolean, 
+  formState: any,
+  setFormState: (state: any) => void,
+  showModalMessage?: (message: string) => void
+) => {
+  const newAddress = isChecked ? '0x0000000000000000000000000000000000000000' : '';
+  const currentTokenType = formState.acceptorTokenType;
+  
+  // If switching to open swap and current token type is ERC721, show warning
+  if (isChecked && currentTokenType === 'ERC721' && showModalMessage) {
+    showModalMessage('Open swaps cannot accept ERC721 tokens. Token type will be reset.');
+  }
+  
+  setFormState({
+    ...formState,
+    acceptorAddress: newAddress,
+    acceptorTokenType: isChecked && currentTokenType === 'ERC721' ? 'NONE' : currentTokenType
+  });
+};

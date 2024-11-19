@@ -63,19 +63,12 @@ const Header: React.FC<HeaderProps> = ({
               </a>
             </li>
             <li className="navItem" style={{ margin: 0 }}>
-              <a
-                className={`button ${currentPage === 'initSwap' ? 'active' : ''}`}
+              <button
+                className={`button tw-web3button css-wkqovy ${currentPage === 'initSwap' ? 'active' : ''}`}
                 onClick={() => setCurrentPage('initSwap')}
-                style={{ 
-                  background: '#f5f6fd',
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  color: currentPage === 'initSwap' ? '#000' : '#666',
-                  fontSize: '1rem'
-                }}
               >
                 Start New Swap
-              </a>
+              </button>
             </li>
           </ul>
         </nav>

@@ -99,8 +99,8 @@ const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract, setFormS
         )}
         {address && (
           <div>
-            <h3>Wallet Balance</h3>
-            <p>Your current balance: {walletBalance} ETH</p>
+            <h3>Wallet Balance:</h3>
+            <p style={{fontSize: '2em'}}>{walletBalance} ETH</p>
             <Web3Button
               className="button"
               contractAddress={contractAddress}
@@ -109,6 +109,8 @@ const Wallet: React.FC<WalletProps> = ({ contractAddress, swapContract, setFormS
             >
               Withdraw
             </Web3Button>
+            <p style={{ fontSize: '0.85em', fontStyle: 'italic', padding: '2em 0 0 0', color: 'rgba(0, 0, 0, 0.7)' }}>This page shows your current balance of ETH stored in the P2PSwap contract. When a swap involving ETH is completed, 
+            the ETH portion is stored here until you withdraw it. You can withdraw your balance at any time by clicking the button above.</p>
           </div>
         )}
       </div>

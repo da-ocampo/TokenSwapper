@@ -2,12 +2,9 @@ import React, { useState, Dispatch, SetStateAction, useCallback, useEffect } fro
 import { ConnectWallet } from '@thirdweb-dev/react';
 import SwapBox from './components/SwapBox';
 import { 
-  MAINNET_CONTRACT_ADDRESS, 
-  SEPOLIA_CONTRACT_ADDRESS, 
+  CONTRACT_ADDRESS,
   MAINNET_CHAIN_ID, 
   SEPOLIA_CHAIN_ID,
-  LINEA_MAINNET_ADDRESS,
-  LINEA_TESTNET_ADDRESS,
   LINEA_MAINNET_CHAIN_ID,
   LINEA_TESTNET_CHAIN_ID
 } from '../const/constants';
@@ -48,10 +45,8 @@ const SwapList = ({
 
   const fetchTransactions = useCallback(async () => {
     if (swapContract && signer && address && 
-        ((chainId === MAINNET_CHAIN_ID && contractAddress === MAINNET_CONTRACT_ADDRESS) ||
-         (chainId === SEPOLIA_CHAIN_ID && contractAddress === SEPOLIA_CONTRACT_ADDRESS) ||
-         (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress === LINEA_MAINNET_ADDRESS) ||
-         (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress === LINEA_TESTNET_ADDRESS))) {
+      chainId && [MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID].includes(chainId) && 
+      contractAddress === CONTRACT_ADDRESS) {
       try {
         const events = await swapContract.events.getAllEvents();
   

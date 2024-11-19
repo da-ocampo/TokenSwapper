@@ -2,12 +2,9 @@ import { NextPage } from 'next';
 import { Web3Button, ConnectWallet, useAddress, useContract, useSigner, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
 import { 
-  MAINNET_CONTRACT_ADDRESS, 
-  SEPOLIA_CONTRACT_ADDRESS, 
+  CONTRACT_ADDRESS,
   MAINNET_CHAIN_ID, 
   SEPOLIA_CHAIN_ID,
-  LINEA_MAINNET_ADDRESS,
-  LINEA_TESTNET_ADDRESS,
   LINEA_MAINNET_CHAIN_ID,
   LINEA_TESTNET_CHAIN_ID
 } from '../const/constants';
@@ -31,7 +28,8 @@ import {
   handleTokenQuantityChange,
   handleETHPortionChange,
   useFetchTokenDecimalsEffect,
-  verifyConversion
+  handleSwapDetailsView,
+  handleOpenSwapChange
 } from '../hooks/useHelpers';
 import { fetchContractName } from '../hooks/useDataFetch';
 
@@ -68,18 +66,9 @@ const Swapper: NextPage = () => {
 
   useEffect(() => {
     if (chainId) {
-      if (chainId === MAINNET_CHAIN_ID) {
-        console.log('Mainnet chain detected, using MAINNET_CONTRACT_ADDRESS');
-        setContractAddress(MAINNET_CONTRACT_ADDRESS);
-      } else if (chainId === SEPOLIA_CHAIN_ID) {
-        console.log('Sepolia chain detected, using SEPOLIA_CONTRACT_ADDRESS');
-        setContractAddress(SEPOLIA_CONTRACT_ADDRESS);
-      } else if (chainId === LINEA_MAINNET_CHAIN_ID) {
-        console.log('Linea Mainnet chain detected, using LINEA_MAINNET_ADDRESS');
-        setContractAddress(LINEA_MAINNET_ADDRESS);
-      } else if (chainId === LINEA_TESTNET_CHAIN_ID) {
-        console.log('Linea Sepolia chain detected, using LINEA_TESTNET_ADDRESS');
-        setContractAddress(LINEA_TESTNET_ADDRESS);
+      if ([MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID].includes(chainId)) {
+        console.log(`Supported chain detected (${chainId}), using CONTRACT_ADDRESS`);
+        setContractAddress(CONTRACT_ADDRESS);
       } else {
         console.log('Unsupported chain detected, contract address is cleared');
         setContractAddress('');
@@ -151,13 +140,11 @@ const Swapper: NextPage = () => {
       return;
     }
 
-    if ((chainId === MAINNET_CHAIN_ID && contractAddress !== MAINNET_CONTRACT_ADDRESS) ||
-        (chainId === SEPOLIA_CHAIN_ID && contractAddress !== SEPOLIA_CONTRACT_ADDRESS) ||
-        (chainId === LINEA_MAINNET_CHAIN_ID && contractAddress !== LINEA_MAINNET_ADDRESS) ||
-        (chainId === LINEA_TESTNET_CHAIN_ID && contractAddress !== LINEA_TESTNET_ADDRESS)) {
+    if ((chainId && ![MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID].includes(chainId)) || 
+        contractAddress !== CONTRACT_ADDRESS) {
       setFormState(prevState => ({ 
         ...prevState, 
-        modalMessage: 'Please switch to the correct network for this contract.' 
+        modalMessage: 'Please switch to a supported network for this contract.' 
       }));
       return;
     }
@@ -277,59 +264,7 @@ const Swapper: NextPage = () => {
   };
 
   const handleViewDetails = (swapData: any) => {
-    const initiatorTokenDecimals = tokenDecimals['initiator'] || 18;
-    const acceptorTokenDecimals = tokenDecimals['acceptor'] || 18;
-  
-    const handleTokenQuantity = (quantity: any, tokenType: number, decimals: number) => {
-      if (!quantity) return '0';
-      
-      // For ERC1155 (type 4), if no decimals, use raw value
-      if (tokenType === 4 && decimals === 0) {
-        return ethers.BigNumber.isBigNumber(quantity) ? quantity.toString() : quantity;
-      }
-  
-      // For ERC20 (type 1) and ERC777 (type 2), always format with decimals
-      if ((tokenType === 1 || tokenType === 2) && ethers.BigNumber.isBigNumber(quantity)) {
-        const formatted = ethers.utils.formatUnits(quantity, decimals);
-        // Remove trailing zeros after decimal point
-        return formatted.replace(/\.?0+$/, '');
-      }
-  
-      // For all other cases
-      return ethers.BigNumber.isBigNumber(quantity) 
-        ? quantity.toString() 
-        : quantity;
-    };
-  
-    const parsedData = {
-      ...swapData,
-      initiatorTokenId: ethers.BigNumber.isBigNumber(swapData.initiatorTokenId) 
-        ? swapData.initiatorTokenId.toString() 
-        : swapData.initiatorTokenId,
-      acceptorTokenId: ethers.BigNumber.isBigNumber(swapData.acceptorTokenId) 
-        ? swapData.acceptorTokenId.toString() 
-        : swapData.acceptorTokenId,
-      initiatorTokenQuantity: handleTokenQuantity(
-        swapData.initiatorTokenQuantity,
-        swapData.initiatorTokenType,
-        tokenDecimals['initiator'] || 18
-      ),
-      acceptorTokenQuantity: handleTokenQuantity(
-        swapData.acceptorTokenQuantity,
-        swapData.acceptorTokenType,
-        tokenDecimals['acceptor'] || 18
-      ),
-      initiatorETHPortion: ethers.BigNumber.isBigNumber(swapData.initiatorETHPortion) 
-        ? ethers.utils.formatEther(swapData.initiatorETHPortion) 
-        : swapData.initiatorETHPortion,
-      acceptorETHPortion: ethers.BigNumber.isBigNumber(swapData.acceptorETHPortion) 
-        ? ethers.utils.formatEther(swapData.acceptorETHPortion) 
-        : swapData.acceptorETHPortion,
-      expiryDate: new Date(swapData.expiryDate * 1000).toLocaleString(),
-    };
-    
-    setModalData(parsedData);
-    setShowModal(true);
+    handleSwapDetailsView(swapData, tokenDecimals, setModalData, setShowModal);
   };
 
   return (
@@ -562,23 +497,12 @@ const Swapper: NextPage = () => {
                             type="checkbox"
                             checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
                             onChange={(e) => {
-                              const isChecked = e.target.checked;
-                              const newAddress = isChecked ? '0x0000000000000000000000000000000000000000' : '';
-                              const currentTokenType = formState.acceptorTokenType;
-                              
-                              const newTokenType = isChecked && 
-                                (currentTokenType !== 'ERC20' && currentTokenType !== 'ERC777' && currentTokenType !== 'ERC1155') 
-                                ? 'ERC20' 
-                                : currentTokenType;
-
-                              const newETHPortion = isChecked ? '' : formState.acceptorETHPortion;
-                              
-                              setFormState({
-                                ...formState,
-                                acceptorAddress: newAddress,
-                                acceptorTokenType: newTokenType,
-                                acceptorETHPortion: newETHPortion
-                              });
+                              handleOpenSwapChange(
+                                e.target.checked, 
+                                formState, 
+                                setFormState, 
+                                (message) => setFormState(prev => ({ ...prev, modalMessage: message }))
+                              );
                             }}
                           />
                         </div>
@@ -604,10 +528,10 @@ const Swapper: NextPage = () => {
                               const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
                               
                               if (formState.acceptorAddress === '0x0000000000000000000000000000000000000000' &&
-                                  (tokenType !== 'ERC20' && tokenType !== 'ERC777' && tokenType !== 'ERC1155')) {
+                                  tokenType === 'ERC721') {
                                 setFormState(prevState => ({ 
                                   ...prevState, 
-                                  modalMessage: 'Open swaps can only accept ERC20, ERC777, or ERC1155 tokens. Please select a different token type or specify an acceptor address.' 
+                                  modalMessage: 'Open swaps cannot accept ERC721 tokens. Please select a different token type or specify an acceptor address.' 
                                 }));
                                 return;
                               }
@@ -621,6 +545,7 @@ const Swapper: NextPage = () => {
                           >
                             {formState.acceptorAddress === '0x0000000000000000000000000000000000000000' ? (
                               <>
+                                <option value="NONE">ETH Only</option>
                                 <option value="ERC20">ERC20</option>
                                 <option value="ERC777">ERC777</option>
                                 <option value="ERC1155">ERC1155</option>

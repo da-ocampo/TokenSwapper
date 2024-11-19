@@ -741,7 +741,6 @@ input[type="datetime-local"]::before {
 
   .footer {
     padding: 1em;
-    background: linear-gradient(145deg, #FFFFFF, #F5F8FF);
   }
 
   .footerContainer {
