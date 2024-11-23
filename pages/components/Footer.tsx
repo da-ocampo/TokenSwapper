@@ -22,7 +22,7 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
             className="toggle-button"
             style={{padding: ".5em"}}
           >
-            More info on swapping
+            Info
           </a>
           <span style={{ opacity: 0.5 }}>| </span>
           <a
