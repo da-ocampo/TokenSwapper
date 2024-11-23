@@ -90,7 +90,12 @@ const SwapBox = ({
   
     try {
       // Get the token type from the swap data
-      const tokenType = tx.swapType.split(' ')[0]; // This will get "ERC1155", "ERC20", etc.
+      let swapTypeIndex = 0; // default to initiator
+      if(tx.data.acceptor === address) { 
+        swapTypeIndex = 2; // approve for acceptor if acceptor
+      }
+
+      const tokenType = tx.swapType.split(' ')[swapTypeIndex]; // This will get "ERC1155", "ERC20", etc.
   
       if (tokenType === 'ERC1155') {
         // Use ERC1155 setApprovalForAll

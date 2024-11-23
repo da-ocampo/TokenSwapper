@@ -1,9 +1,9 @@
 import { NextPage } from 'next';
 import { Web3Button, ConnectWallet, useAddress, useContract, useSigner, useChainId } from '@thirdweb-dev/react';
 import { useState, useEffect } from 'react';
-import { 
+import {
   CONTRACT_ADDRESS,
-  MAINNET_CHAIN_ID, 
+  MAINNET_CHAIN_ID,
   SEPOLIA_CHAIN_ID,
   LINEA_MAINNET_CHAIN_ID,
   LINEA_TESTNET_CHAIN_ID
@@ -18,9 +18,9 @@ import SwapList from './SwapList';
 import Wallet from './Wallet';
 import SwapInfo from './components/SwapInfo';
 import { ethers } from 'ethers';
-import { 
-  mapTokenTypeToEnum, 
-  parseErrorReason, 
+import {
+  mapTokenTypeToEnum,
+  parseErrorReason,
   tokenTypeEnumToName,
   useDateInputBlur,
   useFetchTokenDecimals,
@@ -117,34 +117,34 @@ const Swapper: NextPage = () => {
     } = formState;
 
     if (!address || !swapContract || !contractAddress) {
-      setFormState(prevState => ({ 
-        ...prevState, 
-        modalMessage: 'Wallet not connected, contract not found, or unsupported network.' 
+      setFormState(prevState => ({
+        ...prevState,
+        modalMessage: 'Wallet not connected, contract not found, or unsupported network.'
       }));
       return;
     }
 
     if (Math.floor(new Date(expiryDate).getTime() / 1000) < Math.floor(Date.now() / 1000)) {
-      setFormState(prevState => ({ 
-        ...prevState, 
-        modalMessage: 'Swap expiry date cannot be in the past' 
+      setFormState(prevState => ({
+        ...prevState,
+        modalMessage: 'Swap expiry date cannot be in the past'
       }));
       return;
     }
 
     if (initiatorTokenType === 'NONE' && acceptorTokenType === 'NONE') {
-      setFormState(prevState => ({ 
-        ...prevState, 
-        modalMessage: 'Cannot initiate a swap where both parties are only exchanging ETH' 
+      setFormState(prevState => ({
+        ...prevState,
+        modalMessage: 'Cannot initiate a swap where both parties are only exchanging ETH'
       }));
       return;
     }
 
-    if ((chainId && ![MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID].includes(chainId)) || 
-        contractAddress !== CONTRACT_ADDRESS) {
-      setFormState(prevState => ({ 
-        ...prevState, 
-        modalMessage: 'Please switch to a supported network for this contract.' 
+    if ((chainId && ![MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, LINEA_MAINNET_CHAIN_ID, LINEA_TESTNET_CHAIN_ID].includes(chainId)) ||
+      contractAddress !== CONTRACT_ADDRESS) {
+      setFormState(prevState => ({
+        ...prevState,
+        modalMessage: 'Please switch to a supported network for this contract.'
       }));
       return;
     }
@@ -250,9 +250,9 @@ const Swapper: NextPage = () => {
     } catch (error) {
       console.error('Error initiating Swap:', error);
       const reason = parseErrorReason(error);
-      setFormState(prevState => ({ 
-        ...prevState, 
-        modalMessage: `Error initiating Swap. ${reason}` 
+      setFormState(prevState => ({
+        ...prevState,
+        modalMessage: `Error initiating Swap. ${reason}`
       }));
     }
   };
@@ -270,7 +270,7 @@ const Swapper: NextPage = () => {
   return (
     <div className={styles.main}>
       <div className="app-box">
-        <Header 
+        <Header
           address={address}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
@@ -280,17 +280,17 @@ const Swapper: NextPage = () => {
           {currentPage === 'initSwap' && (
             <section id="initSwap" style={{ textAlign: 'center', marginBottom: '1em' }}>
               <div>
-              {!address && (
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
+                {!address && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     minHeight: '60vh',
                     justifyContent: 'center',
                     padding: '2em'
                   }}>
-                    <h1 
-                      style={{ 
+                    <h1
+                      style={{
                         fontSize: '3.5rem',
                         fontWeight: 'bold',
                         background: 'linear-gradient(-45deg, #0066FF, #0052CC, #003D99, #0066FF)',
@@ -303,7 +303,7 @@ const Swapper: NextPage = () => {
                     >
                       Welcome to P2PSwap
                     </h1>
-                    <p style={{ 
+                    <p style={{
                       color: '#2B3C5C',
                       fontSize: '1.1rem',
                       lineHeight: '1.6',
@@ -312,9 +312,17 @@ const Swapper: NextPage = () => {
                       marginBottom: '2em',
                       opacity: 0.9
                     }}>
-                      Please connect your wallet to access the swapping functionality where you can execute peer-to-peer token exchanges, 
-                      view your initiated swaps, manage swaps offered to you, and discover open swaps available for anyone to accept.<br></br> 
-                      P2PSwap enables direct peer-to-peer token exchanges with the security of an impartial escrow contract.
+                      P2PSwap enables peer-to-peer token exchanges with the security of an <i>impartial escrow contract</i>.<br></br><br></br>
+                      If you would like to know more before connecting your wallet, Please see
+                      <a
+                        onClick={() => setCurrentPage('swapInfo')}
+                        className="toggle-button"
+                        style={{ padding: ".5em" }}
+                      >more info on swapping.
+                      </a><br></br><br></br>
+                      Connect your wallet to access the swapping functionality where you can execute peer-to-peer token exchanges,
+                      view your initiated swaps, manage swaps offered to you, and discover open swaps available for anyone to accept.<br></br>
+                      
                     </p>
                     <div style={{ transform: 'scale(1.1)', transition: 'transform 0.3s ease' }}>
                       <ConnectWallet />
@@ -328,8 +336,8 @@ const Swapper: NextPage = () => {
                     <p style={{ fontSize: '0.85em', fontStyle: 'italic', color: 'rgba(0, 0, 0, 0.7)' }}>
                       For more info on swapping{' '}
                       <a onClick={() => setCurrentPage('swapInfo')}
-                        style={{ 
-                          display: 'inline', 
+                        style={{
+                          display: 'inline',
                           textDecoration: 'underline',
                           cursor: 'pointer',
                           color: 'inherit',
@@ -384,13 +392,13 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 {formState.initiatorTokenQuantity && (
-                                  <div className="token-info-box" style={{ 
-                                    border: '1px solid #ccc', 
-                                    padding: '12px', 
-                                    marginTop: '8px', 
-                                    borderRadius: '4px', 
-                                    backgroundColor: '#f9f9f9', 
-                                    textAlign: 'left' 
+                                  <div className="token-info-box" style={{
+                                    border: '1px solid #ccc',
+                                    padding: '12px',
+                                    marginTop: '8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#f9f9f9',
+                                    textAlign: 'left'
                                   }}>
                                     <p><strong>Contract:</strong> <em>{contractNames['initiator'] || 'Loading...'}</em></p>
                                     <p><strong>Token Decimals:</strong> <em>{tokenDecimals['initiator'] || 18}</em></p>
@@ -498,9 +506,9 @@ const Swapper: NextPage = () => {
                             checked={formState.acceptorAddress === '0x0000000000000000000000000000000000000000'}
                             onChange={(e) => {
                               handleOpenSwapChange(
-                                e.target.checked, 
-                                formState, 
-                                setFormState, 
+                                e.target.checked,
+                                formState,
+                                setFormState,
                                 (message) => setFormState(prev => ({ ...prev, modalMessage: message }))
                               );
                             }}
@@ -526,18 +534,18 @@ const Swapper: NextPage = () => {
                             onChange={(e) => {
                               const tokenType = e.target.value;
                               const ercContract = tokenType === 'NONE' ? ethers.constants.AddressZero : '';
-                              
+
                               if (formState.acceptorAddress === '0x0000000000000000000000000000000000000000' &&
-                                  tokenType === 'ERC721') {
-                                setFormState(prevState => ({ 
-                                  ...prevState, 
-                                  modalMessage: 'Open swaps cannot accept ERC721 tokens. Please select a different token type or specify an acceptor address.' 
+                                tokenType === 'ERC721') {
+                                setFormState(prevState => ({
+                                  ...prevState,
+                                  modalMessage: 'Open swaps cannot accept ERC721 tokens. Please select a different token type or specify an acceptor address.'
                                 }));
                                 return;
                               }
-                              
-                              setFormState({ 
-                                ...formState, 
+
+                              setFormState({
+                                ...formState,
                                 acceptorTokenType: tokenType,
                                 acceptorERCContract: tokenType === 'NONE' ? ethers.constants.AddressZero : formState.acceptorERCContract
                               });
@@ -586,13 +594,13 @@ const Swapper: NextPage = () => {
                                   />
                                 </div>
                                 {formState.acceptorTokenQuantity && (
-                                  <div className="token-info-box" style={{ 
-                                    border: '1px solid #ccc', 
-                                    padding: '12px', 
-                                    marginTop: '8px', 
-                                    borderRadius: '4px', 
-                                    backgroundColor: '#f9f9f9', 
-                                    textAlign: 'left' 
+                                  <div className="token-info-box" style={{
+                                    border: '1px solid #ccc',
+                                    padding: '12px',
+                                    marginTop: '8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#f9f9f9',
+                                    textAlign: 'left'
                                   }}>
                                     <p><strong>Contract:</strong> <em>{contractNames['acceptor'] || 'Loading...'}</em></p>
                                     <p><strong>Token Decimals:</strong> <em>{tokenDecimals['acceptor'] || 18}</em></p>
@@ -676,8 +684,8 @@ const Swapper: NextPage = () => {
                       By using this site you acknowledge you have read and understand the{' '}
                       <a
                         onClick={() => setCurrentPage('disclaimer')}
-                        style={{ 
-                          display: 'inline', 
+                        style={{
+                          display: 'inline',
                           textDecoration: 'underline',
                           cursor: 'pointer',
                           color: 'inherit',
@@ -700,8 +708,8 @@ const Swapper: NextPage = () => {
             </section>
           )}
           {currentPage === 'wallet' && (
-            <Wallet 
-              contractAddress={contractAddress} 
+            <Wallet
+              contractAddress={contractAddress}
               swapContract={swapContract}
               setFormState={setFormState}
             />
