@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface FooterProps {
-  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy') => void;
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo') => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
