@@ -9,6 +9,14 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
     <footer className="footer">
       <div className="footerContainer" style={{marginBottom: "1em"}}>
         <div className="textCenter">
+        <a
+            onClick={() => setCurrentPage('initSwap')}
+            className="toggle-button"
+            style={{padding: ".5em"}}
+          >
+            Home
+          </a>
+          <span style={{ opacity: 0.5 }}>| </span>
           <a
             onClick={() => setCurrentPage('swapInfo')}
             className="toggle-button"
