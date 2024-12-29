@@ -40,6 +40,7 @@ export const parseErrorReason = (error: any) => {
   if (reason.includes('TokenIdMissing')) return 'TokenIdMissing: No token ID specified for ERC721 or ERC1155 tokens.';
   if (reason.includes('ValueOrTokenMissing')) return 'ValueOrTokenMissing: Both ETH and token information are missing for the swap.';
   if (reason.includes('TokenTransferFailed')) return 'TokenTransferFailed: Token transfer failed.';
+  if (reason.includes('SafeERC20FailedOperation')) return 'SafeERC20FailedOperation: Token transfer failed.';
   if (reason.includes('NoReentry')) return 'NoReentry: Reentrancy detected.';
   if (reason.includes('ETHSendingFailed')) return 'ETHSendingFailed: Contract failed to send ETH.';
 
