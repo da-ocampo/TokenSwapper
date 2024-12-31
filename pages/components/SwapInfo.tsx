@@ -4,11 +4,9 @@ const SwapInfo = () => {
   return (
     <section style={{ textAlign: 'left', padding: '1em' }}>
       <h2 style={{ marginBottom: '1em', color: '#000' }}>P2P Swap Information</h2>
-      <p style={{ marginBottom: '1em' }}>
-        Audits:
-      </p>
+      <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>Audits</h3>
       <ul style={{ marginLeft: '2em', marginBottom: '1em' }}>
-        <li><a href='https://github.com/gkrastenov/audits/blob/9ec0d368833c67231b953ea9efc193a55de826b1/solo/P2PSwap-Security-Review.pdf' target='_blank'>Key Security</a></li>
+        <li><a href='https://github.com/gkrastenov/audits/blob/9ec0d368833c67231b953ea9efc193a55de826b1/solo/P2PSwap-Security-Review.pdf' target='_blank'>KeySecurity - gkrastenov</a></li>
       </ul>
       
       <p style={{ marginBottom: '1em' }}>
