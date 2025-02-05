@@ -6,6 +6,9 @@ const SwapInfo = () => {
       <h2 style={{ marginBottom: '1em', color: '#000' }}>P2P Swap Information</h2>
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>Audits</h3>
       <ul style={{ marginLeft: '2em', marginBottom: '1em' }}>
+        <li><a href='https://diligence.consensys.io/audits/private/chl9kaod7d8tlq' target='_blank'>Consensys - Diligence</a></li>
+      </ul>
+      <ul style={{ marginLeft: '2em', marginBottom: '1em' }}>
         <li><a href='https://github.com/gkrastenov/audits/blob/9ec0d368833c67231b953ea9efc193a55de826b1/solo/P2PSwap-Security-Review.pdf' target='_blank'>KeySecurity - gkrastenov</a></li>
       </ul>
       
@@ -87,13 +90,13 @@ const SwapInfo = () => {
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>6. Verified Contracts</h3>
       <p style={{ marginBottom: '0.5em' }}>Ethereum Network:</p>
       <ul style={{ listStyleType: 'none', marginBottom: '1em', marginLeft: '2em' }}>
-        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://etherscan.io/address/0xB9ec645254457ad5a07a100Ca150006AaC97D24E' target='_blank'>0xB9ec645254457ad5a07a100Ca150006AaC97D24E</a></code></li>
-        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://sepolia.etherscan.io/address/0xB9ec645254457ad5a07a100Ca150006AaC97D24E' target='_blank'>0xB9ec645254457ad5a07a100Ca150006AaC97D24E</a></code></li>
+        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://etherscan.io/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd' target='_blank'>0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd</a></code></li>
+        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://sepolia.etherscan.io/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd' target='_blank'>0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd</a></code></li>
       </ul>
       <p style={{ marginBottom: '0.5em' }}>Linea Network:</p>
       <ul style={{ listStyleType: 'none', marginBottom: '1em', marginLeft: '2em' }}>
-        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://lineascan.build/address/0xB9ec645254457ad5a07a100Ca150006AaC97D24E' target='_blank'>0xB9ec645254457ad5a07a100Ca150006AaC97D24E</a></code></li>
-        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://sepolia.lineascan.build/address/0xB9ec645254457ad5a07a100Ca150006AaC97D24E' target='_blank'>0xB9ec645254457ad5a07a100Ca150006AaC97D24E</a></code></li>
+        <li>Mainnet: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://lineascan.build/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd' target='_blank'>0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd</a></code></li>
+        <li>Sepolia: <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px' }}><a href='https://sepolia.lineascan.build/address/0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd' target='_blank'>0xF1c35b66F6B94Cb3f7a5004342300F6f7d4edbbd</a></code></li>
       </ul>
       <h3 style={{ marginTop: '1.5em', marginBottom: '0.5em' }}>7. Previous version of verified Contracts (pre-audit-1)</h3>
       <p style={{ marginBottom: '0.5em' }}>Ethereum Network:</p>
