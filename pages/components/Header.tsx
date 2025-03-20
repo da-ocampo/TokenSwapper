@@ -8,8 +8,8 @@ import {
 
 interface HeaderProps {
   address: string | undefined;
-  currentPage: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo';
-  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'swapInfo') => void;
+  currentPage: 'initSwap' | 'swapList' | 'disclaimer' | 'privacy' | 'swapInfo';
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'disclaimer' | 'swapInfo') => void;
   chainId: number | undefined;
 }
 
@@ -49,19 +49,6 @@ const Header: React.FC<HeaderProps> = ({
                 }}
               >
                 Swaps
-              </a>
-            </li>
-            <li className="navItem" style={{ margin: 0 }}>
-              <a
-                className={`toggle-button ${currentPage === 'wallet' ? 'active' : ''}`}
-                onClick={() => setCurrentPage('wallet')}
-                style={{
-                  opacity: currentPage === 'wallet' ? 1 : 0.7,
-                  padding: '0.5rem',
-                  fontSize: '1rem'
-                }}
-              >
-                Wallet
               </a>
             </li>
             <li className="navItem" style={{ margin: 0 }}>
