@@ -15,7 +15,6 @@ import Modal from './components/Modal';
 import Disclaimer from './components/Disclaimer';
 import Privacy from './components/Privacy';
 import SwapList from './SwapList';
-import Wallet from './Wallet';
 import SwapInfo from './components/SwapInfo';
 import { ethers } from 'ethers';
 import {
@@ -54,7 +53,7 @@ const Swapper: NextPage = () => {
     initiatorTokenId: '',
     acceptorTokenId: ''
   });
-  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo'>('initSwap');
+  const [currentPage, setCurrentPage] = useState<'initSwap' | 'swapList' | 'disclaimer' | 'privacy' | 'swapInfo'>('initSwap');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalData, setModalData] = useState<any>(null);
   const [tokenDecimals, setTokenDecimals] = useState<{ [key: string]: number }>({});
@@ -706,13 +705,6 @@ const Swapper: NextPage = () => {
                 )}
               </div>
             </section>
-          )}
-          {currentPage === 'wallet' && (
-            <Wallet
-              contractAddress={contractAddress}
-              swapContract={swapContract}
-              setFormState={setFormState}
-            />
           )}
           {currentPage === 'swapList' && (
             <SwapList

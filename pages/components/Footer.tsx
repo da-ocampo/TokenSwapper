@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface FooterProps {
-  setCurrentPage: (page: 'initSwap' | 'swapList' | 'wallet' | 'disclaimer' | 'privacy' | 'swapInfo') => void;
+  setCurrentPage: (page: 'initSwap' | 'swapList' | 'disclaimer' | 'privacy' | 'swapInfo') => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
@@ -23,14 +23,6 @@ const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
             style={{padding: ".5em"}}
           >
             Info
-          </a>
-          <span style={{ opacity: 0.5 }}>| </span>
-          <a
-            onClick={() => setCurrentPage('swapInfo')}
-            className="toggle-button"
-            style={{padding: ".5em"}}
-          >
-            More info on swapping
           </a>
           <span style={{ opacity: 0.5 }}>| </span>
           <a
